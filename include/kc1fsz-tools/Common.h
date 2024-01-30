@@ -25,7 +25,7 @@
 namespace kc1fsz {
 
 void prettyHexDump(const uint8_t* data, uint32_t len, std::ostream& out,
-    bool color);
+    bool color = false);
 
 /**
  * @param targetLimit The actual size of the target buffer.  This 
