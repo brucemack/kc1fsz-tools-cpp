@@ -20,8 +20,12 @@
 #define _KC1FSZCommon_h
 
 #include <cstdint>
+#include <iostream>
 
 namespace kc1fsz {
+
+void prettyHexDump(const uint8_t* data, uint32_t len, std::ostream& out,
+    bool color);
 
 /**
  * @param targetLimit The actual size of the target buffer.  This 
