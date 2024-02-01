@@ -97,6 +97,8 @@ public:
     */
     virtual uint32_t write(const uint8_t* buf, uint32_t bufLen);
 
+    virtual void blockAndFlush(uint32_t toMs);
+
 private:
 
     static PicoUartChannel* _INSTANCE;

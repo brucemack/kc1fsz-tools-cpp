@@ -49,6 +49,11 @@ public:
      *   so be ready to hold some un-written piece if necessary.
     */
     virtual int32_t write(const uint8_t* buf, uint32_t bufLen) = 0;
+
+    /**
+     * Blocks until all writing is finished. 
+     */
+    virtual void blockAndFlush(uint32_t toMs) { }
 };
 
 }

@@ -116,6 +116,18 @@ bool PicoUartChannel::poll() {
     return true;
 }
 
+void PicoUartChannel::blockAndFlush(uint32_t toMs) {
+    // TODO: TIMEOUT
+    while (true) {
+        _lock();
+        bool done = (_writeBufferUsed == 0);
+        _unlock();
+        if (done) {
+            return;
+        }
+    }
+}
+
 void PicoUartChannel::_ISR() {
     _INSTANCE->_readISR();
     _INSTANCE->_writeISR();
