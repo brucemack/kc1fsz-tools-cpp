@@ -68,7 +68,7 @@ int main() {
         
         if (timer.poll()) {
             channel.write((const uint8_t*)"AT+GMR\r\n", 8);    
-            cout << "Count " << channel.getIsrCount() << endl;
+            cout << "Count " << channel.getIsrCountRead() << endl;
         }
 
         channel.poll();

@@ -108,6 +108,7 @@ uint32_t PicoUartChannel::read(uint8_t* buf, uint32_t bufCapacity) {
 
 uint32_t PicoUartChannel::write(const uint8_t* buf, uint32_t bufLen) {
 
+    // This has the effect of disabling interrupts
     _lockWrite();
 
     // Figure out how much we can take
@@ -121,25 +122,26 @@ uint32_t PicoUartChannel::write(const uint8_t* buf, uint32_t bufLen) {
     // Try to make immediate progress on the send
     _writeISR();
 
-    _unlockWrite();
-
-    // This is called since we may not have the write-ready 
-    // interrupt enabled.
+    // Read is always enabled, but figure out if the write 
+    // needs to be scheduled as well
     _checkISRStatus();
+
+    // This has the effect of re-enabling interrupts
+    _unlockWrite();
 
     return moveSize;
 }
 
 bool PicoUartChannel::poll() {
+    _lockWrite();
     _checkISRStatus();
+    _unlockWrite();
     return true;
 }
 
 void PicoUartChannel::_checkISRStatus() {
 
-    _lockWrite();
     uint32_t used = _writeBufferUsed;
-    _unlockWrite();
 
     // Read is always enabled, but figure out if the write 
     // needs to be scheduled as well
@@ -164,7 +166,6 @@ void PicoUartChannel::_readISR() {
     // Keep reading until we can't
     while (uart_is_readable(_uart)) {
 
-        //_lockRead();
         _isrCountRead++;
 
         // Check to see if we're at capacity on the read buffer.
@@ -174,25 +175,15 @@ void PicoUartChannel::_readISR() {
             _readBytesLost++;
             break;
         }
-        char c = uart_getc(_uart);
-        /*
-        if (isprint(c))
-            cout << "Read " << c << endl;
-        else 
-            cout << "Read " << (int)c << endl;
-        */
-        _readBuffer[_readBufferUsed++] = c;
-        //_unlockRead();
-    }
 
+        _readBuffer[_readBufferUsed++] = uart_getc(_uart);
+    }
 }
 
 // IMPORTANT: There is an assumption here that interrupts are disable
 // while working inside of the ISR.
 void PicoUartChannel::_writeISR() {
     
-    //_lockWrite();
-
     _isrCountWrite++;
 
     uint32_t moveSize = 0;
@@ -218,8 +209,6 @@ void PicoUartChannel::_writeISR() {
     // Shift remaining data (if any) down to the start of the buffer
     if (_writeBufferUsed > 0)
         memcpy(_writeBuffer, _writeBuffer + moveSize, _writeBufferUsed);
-
-    //_unlockWrite();
 }
 
 void PicoUartChannel::_lockRead() {
