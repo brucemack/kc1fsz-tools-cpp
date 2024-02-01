@@ -1,0 +1,61 @@
+# Copyright (C) 2024, Bruce MacKinnon KC1FSZ
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# ( at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
+#
+cmake_minimum_required(VERSION 3.13)
+if(DEFINED ENV{PICO_BUILD})
+include(pico_sdk_import.cmake)
+endif()
+project(kc1fsz-tools-cpp C CXX ASM)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
+file(MAKE_DIRECTORY tmp)
+
+if(DEFINED ENV{PICO_BUILD})
+pico_sdk_init()
+endif()
+
+if(DEFINED ENV{PICO_BUILD})
+message("----- PICO build ---------------------------------------------------------------")
+add_compile_options(-Wall -g)
+else()
+message("Desktop build!")
+add_compile_options(-fstack-protector-all -Wall -Wpedantic -g)
+endif()
+
+# ------ common-test-1 -------------------------------------------------------
+
+add_executable(common-test-1
+  tests/common-test-1.cpp
+  src/Common.cpp
+) 
+
+target_include_directories(common-test-1 PRIVATE src)
+target_include_directories(common-test-1 PRIVATE include)
+
+# ------ uart-test-1 ----------------------------------------------------------
+
+add_executable(uart-test-1
+  tests/uart-test-1.cpp
+  src/rp2040/PicoUartChannel.cpp
+)
+
+if(DEFINED ENV{PICO_BUILD})
+pico_enable_stdio_usb(uart-test-1 1)
+pico_enable_stdio_uart(uart-test-1 0)
+target_compile_definitions(uart-test-1 PUBLIC PICO_BUILD=1)
+target_link_libraries(uart-test-1 pico_stdlib hardware_i2c hardware_adc pico_multicore)
+endif()
