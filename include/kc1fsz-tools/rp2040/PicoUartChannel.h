@@ -70,6 +70,8 @@ public:
     */
     bool poll();
 
+    uint32_t getIsrCount() const { return _isrCount; }
+
     /**
      * @return true if read() can be called productively.
     */
@@ -113,6 +115,7 @@ private:
     uint8_t* _writeBuffer;
     uint32_t _writeBufferSize;
     uint32_t _writeBufferUsed;
+    uint32_t _isrCount;
 };
 
 }

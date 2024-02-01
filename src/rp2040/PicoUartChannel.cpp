@@ -25,6 +25,8 @@
 
 #include "kc1fsz-tools/rp2040/PicoUartChannel.h"
 
+using namespace std;
+
 namespace kc1fsz {
 
 PicoUartChannel* PicoUartChannel::_INSTANCE = 0;
@@ -39,7 +41,8 @@ PicoUartChannel::PicoUartChannel(uart_inst_t* uart,
     _readBufferUsed(0),
     _writeBuffer(writeBuffer),
     _writeBufferSize(writeBufferSize),
-    _writeBufferUsed(0) {      
+    _writeBufferUsed(0),
+    _isrCount(0) {      
     // Install handler
     _INSTANCE = this;
     irq_set_exclusive_handler(_irq, _ISR);
@@ -94,6 +97,7 @@ uint32_t PicoUartChannel::write(const uint8_t* buf, uint32_t bufLen) {
     if (moveSize > 0) {
         // Take the caller's data
         memcpy(_writeBuffer + _writeBufferUsed, buf, moveSize);
+        _writeBufferUsed += moveSize;
     }
     _unlock();
     return moveSize;
@@ -103,7 +107,11 @@ bool PicoUartChannel::poll() {
     // Read is always enabled, but figure out if the write 
     // needs to be scheduled as well
     _lock();
-    uart_set_irq_enables(_uart, true, (_writeBufferUsed > 0));
+    if (_writeBufferUsed > 0) {
+        uart_set_irq_enables(_uart, true, true);
+    } else {
+        uart_set_irq_enables(_uart, true, false);
+    }
     _unlock();
     return true;
 }
@@ -116,6 +124,7 @@ void PicoUartChannel::_ISR() {
 // IMPORTANT: There is an assumption here that interrupts are disable
 // while working inside of the ISR.
 void PicoUartChannel::_readISR() {
+    _isrCount++;
     // Keep reading until we can't
     while (uart_is_readable(_uart) && _readBufferUsed < _readBufferSize)
         _readBuffer[_readBufferUsed++] = uart_getc(_uart);
@@ -124,13 +133,16 @@ void PicoUartChannel::_readISR() {
 // IMPORTANT: There is an assumption here that interrupts are disable
 // while working inside of the ISR.
 void PicoUartChannel::_writeISR() {
+    _isrCount++;
     uint32_t moveSize = 0;
-    while (uart_is_writable(_uart) && _writeBufferUsed > 0) {
-        uart_putc(_uart, (char)_writeBuffer[--_writeBufferUsed]);
-        moveSize++;
+    while (uart_is_writable(_uart) && moveSize < _writeBufferUsed) {
+        uart_putc(_uart, (char)_writeBuffer[moveSize++]);
     }
-    // Shift remaining data down to the start of the buffer
-    memcpy(_writeBuffer, _writeBuffer + moveSize, _writeBufferUsed);
+    _writeBufferUsed -= moveSize;
+    // Shift remaining data (if any) down to the start of the buffer
+    if (_writeBufferUsed > 0)
+        memcpy(_writeBuffer, _writeBuffer + moveSize, _writeBufferUsed);
+    
 }
 
 void PicoUartChannel::_lock() {

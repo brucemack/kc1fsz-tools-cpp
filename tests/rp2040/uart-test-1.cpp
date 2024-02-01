@@ -59,7 +59,24 @@ int main() {
     PicoUartChannel channel(UART_ID, 
         readBuffer, readBufferSize, writeBuffer, writeBufferSize);
 
+    channel.write((const uint8_t*)"AT+GMR\r\n", 8);
+    uint32_t highest = 0;
+
     while (true) {
+        
         channel.poll();
+
+        // Check for result
+        if (channel.isReadable()) {
+            uint8_t buf[256];
+            int len = channel.read(buf, 256);
+            cout.write((const char*)buf, len);
+            cout.flush();
+        }
+
+        if (channel.getIsrCount() > highest) {
+            highest = channel.getIsrCount();
+            //cout << "Count " << highest << endl;
+        }
     }
 }
