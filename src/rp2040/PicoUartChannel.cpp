@@ -18,7 +18,12 @@
  */
 #include <iostream>
 #include <cstring>
-#include "kc1fsz-tools/pico/PicoUartChannel.h"
+
+#include <pico/stdlib.h>
+#include <hardware/uart.h>
+#include <hardware/irq.h>
+
+#include "kc1fsz-tools/rp2040/PicoUartChannel.h"
 
 namespace kc1fsz {
 
@@ -28,12 +33,12 @@ PicoUartChannel::PicoUartChannel(uart_inst_t* uart,
     uint8_t* readBuffer, uint32_t readBufferSize, 
     uint8_t* writeBuffer, uint32_t writeBufferSize)
 :   _uart(uart),
-    _irq((_uart == uart0) ? UART0_IRQ : UART1_REQ),
+    _irq((_uart == uart0) ? UART0_IRQ : UART1_IRQ),
     _readBuffer(readBuffer),
     _readBufferSize(readBufferSize),
+    _readBufferUsed(0),
     _writeBuffer(writeBuffer),
     _writeBufferSize(writeBufferSize),
-    _readBufferUsed(0),
     _writeBufferUsed(0) {      
     // Install handler
     _INSTANCE = this;
@@ -63,6 +68,7 @@ uint32_t PicoUartChannel::bytesWritable() const {
     const_cast<PicoUartChannel*>(this)->_lock();
     uint32_t r = _writeBufferSize - _writeBufferUsed;
     const_cast<PicoUartChannel*>(this)->_unlock();
+    return r;
 }
 
 uint32_t PicoUartChannel::read(uint8_t* buf, uint32_t bufCapacity) {
@@ -99,6 +105,7 @@ bool PicoUartChannel::poll() {
     _lock();
     uart_set_irq_enables(_uart, true, (_writeBufferUsed > 0));
     _unlock();
+    return true;
 }
 
 void PicoUartChannel::_ISR() {
@@ -119,7 +126,7 @@ void PicoUartChannel::_readISR() {
 void PicoUartChannel::_writeISR() {
     uint32_t moveSize = 0;
     while (uart_is_writable(_uart) && _writeBufferUsed > 0) {
-        uart_putc((char)_writeBuffer[--_writeBufferUsed]);
+        uart_putc(_uart, (char)_writeBuffer[--_writeBufferUsed]);
         moveSize++;
     }
     // Shift remaining data down to the start of the buffer

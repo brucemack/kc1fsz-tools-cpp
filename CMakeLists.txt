@@ -37,6 +37,7 @@ add_compile_options(-fstack-protector-all -Wall -Wpedantic -g)
 endif()
 
 # ------ common-test-1 -------------------------------------------------------
+# Target: Host
 
 add_executable(common-test-1
   tests/common-test-1.cpp
@@ -47,9 +48,10 @@ target_include_directories(common-test-1 PRIVATE src)
 target_include_directories(common-test-1 PRIVATE include)
 
 # ------ uart-test-1 ----------------------------------------------------------
+# Target: RP2040 board
 
 add_executable(uart-test-1
-  tests/uart-test-1.cpp
+  tests/rp2040/uart-test-1.cpp
   src/rp2040/PicoUartChannel.cpp
 )
 
@@ -59,3 +61,5 @@ pico_enable_stdio_uart(uart-test-1 0)
 target_compile_definitions(uart-test-1 PUBLIC PICO_BUILD=1)
 target_link_libraries(uart-test-1 pico_stdlib hardware_i2c hardware_adc pico_multicore)
 endif()
+target_include_directories(uart-test-1 PRIVATE src)
+target_include_directories(uart-test-1 PRIVATE include)

@@ -19,9 +19,9 @@
 #ifndef _PicoUartChannel_h
 #define _PicoUartChannel_h
 
-#include "AsyncChannel.h"
+#include "hardware/uart.h"
 
-struct uart_inst_t;
+#include "kc1fsz-tools/AsyncChannel.h"
 
 namespace kc1fsz {
 
