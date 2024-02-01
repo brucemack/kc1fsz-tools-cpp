@@ -27,6 +27,14 @@ class AsyncChannel {
 public:
 
     /**
+     * Tells the channel to make forward progress, whatever that 
+     * means in its context.
+     * 
+     * @return true if anything happened during the poll cycle.
+    */
+    virtual bool poll() { return false; }
+
+    /**
      * @return true if read() can be called productively.
     */
     virtual bool isReadable() const = 0;
