@@ -53,6 +53,7 @@ target_include_directories(common-test-1 PRIVATE include)
 add_executable(uart-test-1
   tests/rp2040/uart-test-1.cpp
   src/rp2040/PicoUartChannel.cpp
+  src/rp2040/PicoPollTimer.cpp
 )
 
 if(DEFINED ENV{PICO_BUILD})

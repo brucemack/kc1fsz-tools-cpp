@@ -8,6 +8,7 @@
 #include "hardware/uart.h"
 
 #include "kc1fsz-tools/rp2040/PicoUartChannel.h"
+#include "kc1fsz-tools/rp2040/PicoPollTimer.h"
 
 const uint LED_PIN = 25;
 
@@ -58,12 +59,18 @@ int main() {
 
     PicoUartChannel channel(UART_ID, 
         readBuffer, readBufferSize, writeBuffer, writeBufferSize);
-
     channel.write((const uint8_t*)"AT+GMR\r\n", 8);
-    uint32_t highest = 0;
+
+    PicoPollTimer timer;
+    timer.setIntervalUs(1000 * 5000);
 
     while (true) {
         
+        if (timer.poll()) {
+            channel.write((const uint8_t*)"AT+GMR\r\n", 8);    
+            cout << "Count " << channel.getIsrCount() << endl;
+        }
+
         channel.poll();
 
         // Check for result
@@ -72,11 +79,6 @@ int main() {
             int len = channel.read(buf, 256);
             cout.write((const char*)buf, len);
             cout.flush();
-        }
-
-        if (channel.getIsrCount() > highest) {
-            highest = channel.getIsrCount();
-            //cout << "Count " << highest << endl;
         }
     }
 }
