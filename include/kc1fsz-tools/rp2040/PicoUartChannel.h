@@ -56,7 +56,7 @@ namespace kc1fsz {
  * 
  *    uart_set_fifo_enabled(UART_ID, true);
 */
-class PicoUartChannel {
+class PicoUartChannel : public AsyncChannel {
 public:
 
     PicoUartChannel(uart_inst_t* uart,

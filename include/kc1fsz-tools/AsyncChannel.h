@@ -36,19 +36,19 @@ public:
     */
     virtual bool isWritable() const = 0;
 
-    virtual int32_t bytesReadable() const = 0;
-    virtual int32_t bytesWritable() const = 0;
+    virtual uint32_t bytesReadable() const = 0;
+    virtual uint32_t bytesWritable() const = 0;
 
     /**
      * @return The number of bytes that were actually read.  <= bufCapacity
     */
-    virtual int32_t read(uint8_t* buf, uint32_t bufCapacity) = 0;
+    virtual uint32_t read(uint8_t* buf, uint32_t bufCapacity) = 0;
 
     /**
      * @return The number of bytes that were actually written.  <= bufLen, 
      *   so be ready to hold some un-written piece if necessary.
     */
-    virtual int32_t write(const uint8_t* buf, uint32_t bufLen) = 0;
+    virtual uint32_t write(const uint8_t* buf, uint32_t bufLen) = 0;
 
     /**
      * Blocks until all writing is finished. 
