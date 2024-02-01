@@ -19,6 +19,7 @@
 #ifndef _PicoUartChannel_h
 #define _PicoUartChannel_h
 
+#include "pico/critical_section.h"
 #include "hardware/uart.h"
 
 #include "kc1fsz-tools/AsyncChannel.h"
@@ -55,7 +56,7 @@ namespace kc1fsz {
  * 5. Turn on FIFO (ex):
  * 
  *    uart_set_fifo_enabled(UART_ID, true);
-*/
+ */
 class PicoUartChannel : public AsyncChannel {
 public:
 
@@ -70,7 +71,14 @@ public:
     */
     bool poll();
 
-    uint32_t getIsrCount() const { return _isrCount; }
+    /**
+     * @return Number of times the interrupt has fired
+     */
+    uint32_t getIsrCountRead() const { return _isrCountRead; }
+
+    uint32_t getIsrCountWrite() const { return _isrCountWrite; }
+
+    uint32_t getReadBytesLost() const { return _readBytesLost; }
 
     /**
      * @return true if read() can be called productively.
@@ -97,27 +105,36 @@ public:
     */
     virtual uint32_t write(const uint8_t* buf, uint32_t bufLen);
 
-    virtual void blockAndFlush(uint32_t toMs);
-
 private:
 
     static PicoUartChannel* _INSTANCE;
     static void _ISR();
 
+    void _checkISRStatus();
     void _readISR();
     void _writeISR();
-    void _lock();
-    void _unlock();
+
+    void _lockRead();
+    void _unlockRead();
+    void _lockWrite();
+    void _unlockWrite();
     
     uart_inst_t* _uart;
-    int _irq;
+    volatile int _irq;
     uint8_t* _readBuffer;
     uint32_t _readBufferSize;
     uint32_t _readBufferUsed;
     uint8_t* _writeBuffer;
     uint32_t _writeBufferSize;
     uint32_t _writeBufferUsed;
-    uint32_t _isrCount;
+    volatile uint32_t _isrCountRead;
+    volatile uint32_t _isrCountWrite;
+    volatile uint32_t _isrLoopWrite;
+    uint32_t _readBytesLost;
+    // Used for protecting shared memory
+    critical_section_t _sectRead;
+    critical_section_t _sectWrite;
+    bool _writeIntEnabled;
 };
 
 }

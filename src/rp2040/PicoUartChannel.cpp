@@ -42,14 +42,26 @@ PicoUartChannel::PicoUartChannel(uart_inst_t* uart,
     _writeBuffer(writeBuffer),
     _writeBufferSize(writeBufferSize),
     _writeBufferUsed(0),
-    _isrCount(0) {      
+    _isrCountRead(0),
+    _isrCountWrite(0),
+    _isrLoopWrite(0),
+    _readBytesLost(0) {      
+
+    critical_section_init_with_lock_num(&_sectRead, 0);
+    critical_section_init_with_lock_num(&_sectWrite, 1);
+
     // Install handler
     _INSTANCE = this;
     irq_set_exclusive_handler(_irq, _ISR);
+    // We always want the write to be enabled at least
+    uart_set_irq_enables(_uart, true, false);
     irq_set_enabled(_irq, true);
+    _writeIntEnabled = false;
 }
 
 PicoUartChannel::~PicoUartChannel() {
+    critical_section_deinit(&_sectRead);
+    critical_section_deinit(&_sectWrite);
 }
 
 bool PicoUartChannel::PicoUartChannel::isReadable() const {
@@ -61,21 +73,23 @@ bool PicoUartChannel::PicoUartChannel::isWritable() const {
 }
 
 uint32_t PicoUartChannel::bytesReadable() const {
-    const_cast<PicoUartChannel*>(this)->_lock();
+    const_cast<PicoUartChannel*>(this)->_lockRead();
     uint32_t r = _readBufferUsed;
-    const_cast<PicoUartChannel*>(this)->_unlock();
+    const_cast<PicoUartChannel*>(this)->_unlockRead();
     return r;
 }
 
 uint32_t PicoUartChannel::bytesWritable() const {
-    const_cast<PicoUartChannel*>(this)->_lock();
+    const_cast<PicoUartChannel*>(this)->_lockWrite();
     uint32_t r = _writeBufferSize - _writeBufferUsed;
-    const_cast<PicoUartChannel*>(this)->_unlock();
+    const_cast<PicoUartChannel*>(this)->_unlockWrite();
     return r;
 }
 
 uint32_t PicoUartChannel::read(uint8_t* buf, uint32_t bufCapacity) {
-    _lock();
+
+    _lockRead();
+
     // Figure out how much we can give
     uint32_t moveSize = std::min(bufCapacity, _readBufferUsed);
     if (moveSize > 0) {
@@ -84,14 +98,18 @@ uint32_t PicoUartChannel::read(uint8_t* buf, uint32_t bufCapacity) {
         _readBufferUsed -= moveSize;
         // Shift any remaining data back to the start (should not be the norm)
         if (moveSize < _readBufferUsed)
-            memcpy(buf, buf + moveSize, _readBufferUsed);
+            memcpy(_readBuffer, _readBuffer + moveSize, _readBufferUsed);
     }
-    _unlock();
+
+    _unlockRead();
+
     return moveSize;
 }
 
 uint32_t PicoUartChannel::write(const uint8_t* buf, uint32_t bufLen) {
-    _lock();
+
+    _lockWrite();
+
     // Figure out how much we can take
     uint32_t moveSize = std::min(bufLen, _writeBufferSize - _writeBufferUsed);
     if (moveSize > 0) {
@@ -99,32 +117,38 @@ uint32_t PicoUartChannel::write(const uint8_t* buf, uint32_t bufLen) {
         memcpy(_writeBuffer + _writeBufferUsed, buf, moveSize);
         _writeBufferUsed += moveSize;
     }
-    _unlock();
+
+    // Try to make immediate progress on the send
+    _writeISR();
+
+    _unlockWrite();
+
+    // This is called since we may not have the write-ready 
+    // interrupt enabled.
+    _checkISRStatus();
+
     return moveSize;
 }
 
 bool PicoUartChannel::poll() {
-    // Read is always enabled, but figure out if the write 
-    // needs to be scheduled as well
-    _lock();
-    if (_writeBufferUsed > 0) {
-        uart_set_irq_enables(_uart, true, true);
-    } else {
-        uart_set_irq_enables(_uart, true, false);
-    }
-    _unlock();
+    _checkISRStatus();
     return true;
 }
 
-void PicoUartChannel::blockAndFlush(uint32_t toMs) {
-    // TODO: TIMEOUT
-    while (true) {
-        _lock();
-        bool done = (_writeBufferUsed == 0);
-        _unlock();
-        if (done) {
-            return;
-        }
+void PicoUartChannel::_checkISRStatus() {
+
+    _lockWrite();
+    uint32_t used = _writeBufferUsed;
+    _unlockWrite();
+
+    // Read is always enabled, but figure out if the write 
+    // needs to be scheduled as well
+    if (used > 0) {
+        uart_set_irq_enables(_uart, true, true);
+        _writeIntEnabled = true;
+    } else {
+        uart_set_irq_enables(_uart, true, false);
+        _writeIntEnabled = false;
     }
 }
 
@@ -136,33 +160,82 @@ void PicoUartChannel::_ISR() {
 // IMPORTANT: There is an assumption here that interrupts are disable
 // while working inside of the ISR.
 void PicoUartChannel::_readISR() {
-    _isrCount++;
+
     // Keep reading until we can't
-    while (uart_is_readable(_uart) && _readBufferUsed < _readBufferSize)
-        _readBuffer[_readBufferUsed++] = uart_getc(_uart);
+    while (uart_is_readable(_uart)) {
+
+        //_lockRead();
+        _isrCountRead++;
+
+        // Check to see if we're at capacity on the read buffer.
+        // If the read buffer is full then we can assume that 
+        // there's a good chance that we are losing bytes here.
+        if (_readBufferUsed == _readBufferSize) {
+            _readBytesLost++;
+            break;
+        }
+        char c = uart_getc(_uart);
+        /*
+        if (isprint(c))
+            cout << "Read " << c << endl;
+        else 
+            cout << "Read " << (int)c << endl;
+        */
+        _readBuffer[_readBufferUsed++] = c;
+        //_unlockRead();
+    }
+
 }
 
 // IMPORTANT: There is an assumption here that interrupts are disable
 // while working inside of the ISR.
 void PicoUartChannel::_writeISR() {
-    _isrCount++;
+    
+    //_lockWrite();
+
+    _isrCountWrite++;
+
     uint32_t moveSize = 0;
+
     while (uart_is_writable(_uart) && moveSize < _writeBufferUsed) {
-        uart_putc(_uart, (char)_writeBuffer[moveSize++]);
+
+        _isrLoopWrite++;
+
+        char c = (char)_writeBuffer[moveSize++];
+        /*
+        if (isprint(c))
+            cout << "SENT " << c << endl;
+        else {
+            cout << (int)c << endl;
+        }
+        */
+        uart_putc(_uart, c);
+
     }
+
     _writeBufferUsed -= moveSize;
+
     // Shift remaining data (if any) down to the start of the buffer
     if (_writeBufferUsed > 0)
         memcpy(_writeBuffer, _writeBuffer + moveSize, _writeBufferUsed);
-    
+
+    //_unlockWrite();
 }
 
-void PicoUartChannel::_lock() {
-    irq_set_enabled(_irq, false);
+void PicoUartChannel::_lockRead() {
+    critical_section_enter_blocking(&_sectRead);
 }
 
-void PicoUartChannel::_unlock() {
-    irq_set_enabled(_irq, true);
+void PicoUartChannel::_unlockRead() {
+    critical_section_exit(&_sectRead);
+}
+
+void PicoUartChannel::_lockWrite() {
+    critical_section_enter_blocking(&_sectWrite);
+}
+
+void PicoUartChannel::_unlockWrite() {
+    critical_section_exit(&_sectWrite);
 }
 
 }
