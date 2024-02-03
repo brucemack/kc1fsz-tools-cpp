@@ -166,6 +166,10 @@ void PicoUartChannel::_readISR() {
     // Keep reading until we can't
     while (uart_is_readable(_uart)) {
 
+        // When the ISR fires, the only way to clear it is to consume
+        // the byte out of the UART/FIFO.
+        char c = uart_getc(_uart);
+
         _isrCountRead++;
 
         // Check to see if we're at capacity on the read buffer.
@@ -174,9 +178,11 @@ void PicoUartChannel::_readISR() {
         if (_readBufferUsed == _readBufferSize) {
             _readBytesLost++;
             break;
+        } 
+        else {
+            _readBuffer[_readBufferUsed++] = c;
         }
 
-        _readBuffer[_readBufferUsed++] = uart_getc(_uart);
     }
 }
 
