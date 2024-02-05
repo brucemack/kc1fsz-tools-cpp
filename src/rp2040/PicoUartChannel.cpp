@@ -23,11 +23,14 @@
 #include <hardware/uart.h>
 #include <hardware/irq.h>
 
+#include "kc1fsz-tools/Common.h"
 #include "kc1fsz-tools/rp2040/PicoUartChannel.h"
 
 using namespace std;
 
 namespace kc1fsz {
+
+static bool debugTrace = false;
 
 PicoUartChannel* PicoUartChannel::_INSTANCE = 0;
 
@@ -107,6 +110,11 @@ uint32_t PicoUartChannel::read(uint8_t* buf, uint32_t bufCapacity) {
 }
 
 uint32_t PicoUartChannel::write(const uint8_t* buf, uint32_t bufLen) {
+
+    if (debugTrace) {
+        cout << "PicoUartChannel::write()" << endl;
+        prettyHexDump(buf, bufLen, cout);
+    }
 
     // This has the effect of disabling interrupts
     _lockWrite();

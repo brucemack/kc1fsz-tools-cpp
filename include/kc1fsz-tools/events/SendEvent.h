@@ -16,21 +16,21 @@
  *
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
-#ifndef _TCPConnectEvent_h
-#define _TCPConnectEvent_h
+#ifndef _SendEvent_h
+#define _SendEvent_h
 
 #include "../Event.h"
 #include "../Channel.h"
 
 namespace kc1fsz {
 
-class TCPConnectEvent : public Event {
+class SendEvent : public Event {
 public:
 
-    static const int TYPE = 101;
+    static const int TYPE = 106;
 
-    TCPConnectEvent(Channel c) : Event(TYPE), _channel(c), _good(true) { }
-    TCPConnectEvent(Channel c, bool good) : Event(TYPE), _channel(c), _good(good) { }
+    SendEvent(Channel c) : Event(TYPE), _channel(c), _good(true) { }
+    SendEvent(Channel c, bool good) : Event(TYPE), _channel(c), _good(good) { }
     Channel getChannel() const { return _channel; }
     bool isGood() const { return _good; }
     
