@@ -60,6 +60,8 @@ namespace kc1fsz {
 class PicoUartChannel : public AsyncChannel {
 public:
 
+    static bool debugTrace;
+
     PicoUartChannel(uart_inst_t* uart,
         uint8_t* readBuffer, uint32_t readBufferSize, 
         uint8_t* writeBuffer, uint32_t writeBufferSize);
@@ -122,11 +124,11 @@ private:
     uart_inst_t* _uart;
     volatile int _irq;
     uint8_t* _readBuffer;
-    uint32_t _readBufferSize;
+    const uint32_t _readBufferSize;
     uint32_t _readBufferUsed;
     uint8_t* _writeBuffer;
-    uint32_t _writeBufferSize;
-    uint32_t _writeBufferUsed;
+    const uint32_t _writeBufferSize;
+    volatile uint32_t _writeBufferUsed;
     volatile uint32_t _isrCountRead;
     volatile uint32_t _isrCountWrite;
     volatile uint32_t _isrLoopWrite;

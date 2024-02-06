@@ -22,6 +22,7 @@
 #include <pico/stdlib.h>
 #include <hardware/uart.h>
 #include <hardware/irq.h>
+#include <hardware/sync.h>
 
 #include "kc1fsz-tools/Common.h"
 #include "kc1fsz-tools/rp2040/PicoUartChannel.h"
@@ -30,7 +31,7 @@ using namespace std;
 
 namespace kc1fsz {
 
-static bool debugTrace = false;
+bool PicoUartChannel::debugTrace = false;
 
 PicoUartChannel* PicoUartChannel::_INSTANCE = 0;
 
@@ -93,6 +94,9 @@ uint32_t PicoUartChannel::read(uint8_t* buf, uint32_t bufCapacity) {
 
     _lockRead();
 
+    // Memory sync
+    __dmb();
+
     // Figure out how much we can give
     uint32_t moveSize = std::min(bufCapacity, _readBufferUsed);
     if (moveSize > 0) {
@@ -119,6 +123,9 @@ uint32_t PicoUartChannel::write(const uint8_t* buf, uint32_t bufLen) {
     // This has the effect of disabling interrupts
     _lockWrite();
 
+    // Memory sync
+    __dsb();
+
     // Figure out how much we can take
     uint32_t moveSize = std::min(bufLen, _writeBufferSize - _writeBufferUsed);
     if (moveSize > 0) {
@@ -127,12 +134,15 @@ uint32_t PicoUartChannel::write(const uint8_t* buf, uint32_t bufLen) {
         _writeBufferUsed += moveSize;
     }
 
+    // Memory sync
+    __dsb();
+
     // Try to make immediate progress on the send
     _writeISR();
 
     // Read is always enabled, but figure out if the write 
     // needs to be scheduled as well
-    _checkISRStatus();
+    //_checkISRStatus();
 
     // This has the effect of re-enabling interrupts
     _unlockWrite();
@@ -197,32 +207,38 @@ void PicoUartChannel::_readISR() {
 // IMPORTANT: There is an assumption here that interrupts are disable
 // while working inside of the ISR.
 void PicoUartChannel::_writeISR() {
+
+    // Memory sync
+    __dsb();
     
     _isrCountWrite++;
 
     uint32_t moveSize = 0;
 
-    while (uart_is_writable(_uart) && moveSize < _writeBufferUsed) {
-
-        _isrLoopWrite++;
-
-        char c = (char)_writeBuffer[moveSize++];
-        /*
-        if (isprint(c))
-            cout << "SENT " << c << endl;
-        else {
-            cout << (int)c << endl;
+    while (moveSize < _writeBufferUsed) {
+        if (uart_is_writable(_uart)) {
+            _isrLoopWrite++;
+            char c = (char)_writeBuffer[moveSize++];
+            uart_putc(_uart, c);
+        } else {
+            break;
         }
-        */
-        uart_putc(_uart, c);
-
     }
 
     _writeBufferUsed -= moveSize;
 
-    // Shift remaining data (if any) down to the start of the buffer
-    if (_writeBufferUsed > 0)
-        memcpy(_writeBuffer, _writeBuffer + moveSize, _writeBufferUsed);
+    if (moveSize > 0) {
+        // Shift remaining data (if any) down to the start of the buffer
+        if (_writeBufferUsed > 0) {
+            for (unsigned int i = 0; i < _writeBufferUsed; i++) 
+                _writeBuffer[i] = _writeBuffer[i + moveSize];
+            // DANGER: OVERLAPPING!
+            //memcpy(_writeBuffer, _writeBuffer + moveSize, _writeBufferUsed);
+        }
+    }
+
+    // Memory sync
+    __dsb();
 }
 
 void PicoUartChannel::_lockRead() {
