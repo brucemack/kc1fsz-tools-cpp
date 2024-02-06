@@ -60,7 +60,7 @@ namespace kc1fsz {
 class PicoUartChannel : public AsyncChannel {
 public:
 
-    static bool debugTrace;
+    static int traceLevel;
 
     PicoUartChannel(uart_inst_t* uart,
         uint8_t* readBuffer, uint32_t readBufferSize, 

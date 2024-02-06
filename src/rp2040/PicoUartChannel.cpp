@@ -31,7 +31,7 @@ using namespace std;
 
 namespace kc1fsz {
 
-bool PicoUartChannel::debugTrace = false;
+int PicoUartChannel::traceLevel = 0;
 
 PicoUartChannel* PicoUartChannel::_INSTANCE = 0;
 
@@ -115,7 +115,7 @@ uint32_t PicoUartChannel::read(uint8_t* buf, uint32_t bufCapacity) {
 
 uint32_t PicoUartChannel::write(const uint8_t* buf, uint32_t bufLen) {
 
-    if (debugTrace) {
+    if (traceLevel > 0) {
         cout << "PicoUartChannel::write()" << endl;
         prettyHexDump(buf, bufLen, cout);
     }
