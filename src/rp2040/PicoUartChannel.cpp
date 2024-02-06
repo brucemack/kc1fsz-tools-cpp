@@ -95,7 +95,7 @@ uint32_t PicoUartChannel::read(uint8_t* buf, uint32_t bufCapacity) {
     _lockRead();
 
     // Memory sync
-    __dmb();
+    __dsb();
 
     // Figure out how much we can give
     uint32_t moveSize = std::min(bufCapacity, _readBufferUsed);
@@ -109,6 +109,11 @@ uint32_t PicoUartChannel::read(uint8_t* buf, uint32_t bufCapacity) {
     }
 
     _unlockRead();
+
+    if (traceLevel > 0) {
+        cout << "PicoUartChannel::read()" << endl;
+        prettyHexDump(buf, moveSize, cout);
+    }
 
     return moveSize;
 }
