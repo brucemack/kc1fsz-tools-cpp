@@ -19,6 +19,7 @@
 #ifndef _PicoPollTimer_h
 #define _PicoPollTimer_h
 
+#include "pico/time.h"
 #include "kc1fsz-tools/PollTimer.h"
 
 namespace kc1fsz {
@@ -29,6 +30,7 @@ public:
     PicoPollTimer();
 
     void setIntervalUs(uint32_t i);
+    void reset();
     bool poll(); 
 
 private:

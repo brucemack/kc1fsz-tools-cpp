@@ -37,6 +37,11 @@ public:
     virtual ~AudioOutputContext() { }
 
     /**
+     * Clears any internal state/queues
+    */
+    virtual void reset() { }
+
+    /**
      * This should be called continuously from the event loop, or at
      * least fast enough to keep up with the frame rate.
      * 
@@ -49,8 +54,20 @@ public:
      * to keep this running at the frame rate since the internal 
      * implementation may not necessarily have the ability to buffer
      * extra frames.
+     * 
+     * It is assumed that this is 16-bit audio, meaning that if there
+     * are fewer than 16-bits of significance in the audio stream 
+     * then those significant bits will be on the high (MSB) end 
+     * of the 16-bit word and some zeroes may appear in teh LSB
+     * end of the word.
      */   
     virtual void play(int16_t* frame) = 0;
+
+    /**
+     * @returns The number of times that sycnhronizations problems 
+     *   have been detected since the last reset.
+    */
+    virtual uint32_t getSyncErrorCount() { return 0; }
 
 protected:
 

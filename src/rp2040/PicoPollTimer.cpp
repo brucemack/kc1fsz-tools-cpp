@@ -26,7 +26,11 @@ PicoPollTimer::PicoPollTimer()
 }
 
 void PicoPollTimer::setIntervalUs(uint32_t i) { 
-    _intervalUs = i; 
+    _intervalUs = i;
+    reset(); 
+}
+
+void PicoPollTimer::reset() {
     _last = get_absolute_time();
 }
 
@@ -34,7 +38,9 @@ bool PicoPollTimer::poll() {
     if (_intervalUs != 0) {
         absolute_time_t now = get_absolute_time();
         if (absolute_time_diff_us(_last, now) > _intervalUs) {
-            _last = now;
+            // We update the last from the previous to maintain 
+            // an even cadence.
+            _last = delayed_by_us(_last, _intervalUs);
             return true;
         } else {
             return false;

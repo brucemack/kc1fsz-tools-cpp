@@ -29,6 +29,11 @@ public:
     virtual void setIntervalUs(uint32_t us) = 0;
 
     /**
+     * Starts the interval again
+     */
+    virtual void reset() { }
+
+    /**
      * @return true if the interval has expired.  Will only return 
      *  true once per interval.
     */
