@@ -29,6 +29,7 @@ public:
 
     static const int TYPE = 107;
 
+    ChannelSetupEvent() : Event(TYPE), _good(false) { }
     ChannelSetupEvent(Channel c) : Event(TYPE), _channel(c), _good(true) { }
     ChannelSetupEvent(Channel c, bool good) : Event(TYPE), _channel(c), _good(good) { }
     Channel getChannel() const { return _channel; }
