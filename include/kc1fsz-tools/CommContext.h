@@ -39,7 +39,10 @@ public:
 
     // ------ Request Methods -------------------------------------------------
 
-    virtual void reset();
+    /**
+     * Clears all state and closes all channels.
+    */
+    virtual void reset() { }
 
     /**
      * Starts a DNS lookup.  The result will be delivered via a 
