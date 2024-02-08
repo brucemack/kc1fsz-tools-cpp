@@ -21,6 +21,8 @@
 
 #include <cstdint>
 
+#include "kc1fsz-tools/AudioSink.h"
+
 namespace kc1fsz {
 
 /**
@@ -28,7 +30,7 @@ namespace kc1fsz {
  * PCM audio.  We do this because there are completely different ways
  * of generating audio output on different platforms.
  */
-class AudioOutputContext {
+class AudioOutputContext : public AudioSink {
 public:
 
     AudioOutputContext(uint32_t frameSize, uint32_t samplesPerSecond) :
@@ -61,7 +63,7 @@ public:
      * of the 16-bit word and some zeroes may appear in teh LSB
      * end of the word.
      */   
-    virtual void play(int16_t* frame) = 0;
+    virtual bool play(const int16_t* frame) = 0;
 
     /**
      * @returns The number of times that sycnhronizations problems 
