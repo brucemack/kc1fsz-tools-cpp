@@ -177,6 +177,7 @@ void PicoUartChannel::_checkISRStatus() {
     }
 }
 
+// TODO: __not_in_flash_func()
 void PicoUartChannel::_ISR() {
     _INSTANCE->_readISR();
     _INSTANCE->_writeISR();
