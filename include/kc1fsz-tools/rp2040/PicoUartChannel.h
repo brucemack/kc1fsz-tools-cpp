@@ -64,7 +64,7 @@ public:
 
     PicoUartChannel(uart_inst_t* uart,
         uint8_t* readBuffer, uint32_t readBufferSize, 
-        uint8_t* writeBuffer, uint32_t writeBufferSize);
+        uint8_t* txBuffer, uint32_t txBufferSize);
     virtual ~PicoUartChannel();
 
     /**
@@ -78,9 +78,13 @@ public:
      */
     uint32_t getIsrCountRead() const { return _isrCountRead; }
 
-    uint32_t getIsrCountWrite() const { return _isrCountWrite; }
-
     uint32_t getReadBytesLost() const { return _readBytesLost; }
+
+    uint32_t getBytesReceived() const { return _bytesReceived; }
+
+    uint32_t getBytesSent() const { return _txBufferSentCount; }
+
+    void resetCounters();
 
     /**
      * @return true if read() can be called productively.
@@ -95,6 +99,7 @@ public:
     virtual uint32_t bytesReadable() const;
 
     virtual uint32_t bytesWritable() const;
+
 
     /**
      * @return The number of bytes that were actually read.  <= bufCapacity
@@ -112,31 +117,29 @@ private:
     static PicoUartChannel* _INSTANCE;
     static void _ISR();
 
-    void _checkISRStatus();
+    void _attemptTx();
     void _readISR();
-    void _writeISR();
 
     void _lockRead();
     void _unlockRead();
-    void _lockWrite();
-    void _unlockWrite();
     
     uart_inst_t* _uart;
     volatile int _irq;
     uint8_t* _readBuffer;
     const uint32_t _readBufferSize;
     uint32_t _readBufferUsed;
-    uint8_t* _writeBuffer;
-    const uint32_t _writeBufferSize;
-    volatile uint32_t _writeBufferUsed;
-    volatile uint32_t _isrCountRead;
-    volatile uint32_t _isrCountWrite;
-    volatile uint32_t _isrLoopWrite;
-    uint32_t _readBytesLost;
+
     // Used for protecting shared memory
     critical_section_t _sectRead;
-    critical_section_t _sectWrite;
-    bool _writeIntEnabled;
+
+    uint8_t* _txBuffer;
+    const uint32_t _txBufferSize;
+    uint32_t _txBufferWriteCount;
+    uint32_t _txBufferSentCount;
+
+    volatile uint32_t _isrCountRead;
+    volatile uint32_t _readBytesLost;
+    volatile uint32_t _bytesReceived;
 };
 
 }
