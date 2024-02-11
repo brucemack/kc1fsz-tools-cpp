@@ -89,7 +89,13 @@ uint32_t PicoUartChannel::bytesReadable() const {
 
 uint32_t PicoUartChannel::bytesWritable() const {
     // NOTE: Wrap-around case is addressed on each increment
-    return _txBufferWriteCount - _txBufferSentCount;
+    uint32_t used = _txBufferWriteCount - _txBufferSentCount;
+    // Sanity check
+    if (used >= _txBufferSize) {
+        panic("Logic error 2");
+    }
+    uint32_t available = _txBufferSize - used - 1;
+    return available;
 }
 
 uint32_t PicoUartChannel::read(uint8_t* buf, uint32_t bufCapacity) {
@@ -171,7 +177,7 @@ bool PicoUartChannel::poll() {
         panic("Logic error 1");
     }
 
-    // Write as much as possible
+    // Send as much as possible
     uint32_t moveSize = 0;
     while (_txBufferWriteCount > _txBufferSentCount && 
         uart_is_writable(_uart)) {
