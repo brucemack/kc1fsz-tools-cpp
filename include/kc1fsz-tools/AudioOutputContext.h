@@ -67,7 +67,12 @@ public:
     virtual bool play(const int16_t* frame) = 0;
 
     /**
-     * @returns The number of times that sycnhronizations problems 
+     * Generates a CW tone
+     */
+    virtual void tone(uint32_t freq, uint32_t durationMs) { }
+
+    /**
+     * @returns The number of times that synchronization problems 
      *   have been detected since the last reset.
     */
     virtual uint32_t getSyncErrorCount() { return 0; }
