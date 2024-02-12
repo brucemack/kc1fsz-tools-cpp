@@ -170,7 +170,7 @@ uint32_t PicoUartChannel::write(const uint8_t* buf, uint32_t bufLen) {
     return i;
 }
 
-bool PicoUartChannel::poll() {
+bool PicoUartChannel::run() {
 
     // Santity check - the sending should never get ahead
     if (_txBufferWriteCount < _txBufferSentCount) {

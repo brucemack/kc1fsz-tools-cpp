@@ -71,7 +71,7 @@ public:
      * Call this from the event loop to let the channel do its thing.
      * @return true if anything happens
     */
-    bool poll();
+    bool run();
 
     /**
      * @return Number of times the interrupt has fired

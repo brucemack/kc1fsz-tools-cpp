@@ -21,7 +21,8 @@
 
 #include <cstdint>
 
-#include "kc1fsz-tools/AudioSink.h"
+#include "kc1fsz-tools/Runnable.h"
+#include "kc1fsz-tools/AudioProcessor.h"
 
 namespace kc1fsz {
 
@@ -30,7 +31,7 @@ namespace kc1fsz {
  * PCM audio.  We do this because there are completely different ways
  * of generating audio output on different platforms.
  */
-class AudioOutputContext : public AudioSink {
+class AudioOutputContext : public AudioProcessor, public Runnable {
 public:
 
     AudioOutputContext(uint32_t frameSize, uint32_t samplesPerSecond) :
@@ -49,7 +50,7 @@ public:
      * 
      * @returns true if anything happened while polling
      */
-    virtual bool poll() = 0;
+    virtual bool run() = 0;
 
     /**
      * Loads the "next" frame of PMC audio to be played.  Be careful

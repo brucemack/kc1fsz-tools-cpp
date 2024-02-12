@@ -16,20 +16,22 @@
  *
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
-#ifndef _AudioSink_h
-#define _AudioSink_h
-
-#include <cstdint>
+#ifndef _Runnable_h
+#define _Runnable_h
 
 namespace kc1fsz {
 
-class AudioSink {
+class Runnable {
 public:
 
-    virtual bool play(const int16_t* frame) = 0;
+    /**
+     * Tells the Runnable to run. 
+     *
+     * @returns true if something happens, false if not
+     */
+    virtual bool run() = 0;
 };
 
 }
 
 #endif
-

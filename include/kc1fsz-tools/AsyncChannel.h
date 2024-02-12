@@ -21,9 +21,11 @@
 
 #include <cstdint>
 
+#include "Runnable.h"
+
 namespace kc1fsz {
 
-class AsyncChannel {
+class AsyncChannel : public Runnable {
 public:
 
     /**
@@ -32,7 +34,7 @@ public:
      * 
      * @return true if anything happened during the poll cycle.
     */
-    virtual bool poll() { return false; }
+    virtual bool run() = 0;
 
     /**
      * @return true if read() can be called productively.
