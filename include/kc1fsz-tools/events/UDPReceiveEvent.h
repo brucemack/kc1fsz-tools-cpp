@@ -24,6 +24,7 @@
 #include "../Common.h"
 #include "../Event.h"
 #include "../Channel.h"
+#include "../IPAddress.h"
 
 namespace kc1fsz {
 
@@ -35,19 +36,22 @@ public:
 
     static const int TYPE = 105;
 
-    UDPReceiveEvent(Channel c, const uint8_t* data, uint32_t len) 
+    UDPReceiveEvent(Channel c, const uint8_t* data, uint32_t len, IPAddress addr) 
         : Event(TYPE), _channel(c) {
         memcpyLimited(_data, data, len, _dataSize);
         _dataLen = std::min(len, _dataSize);
+        _addr = addr;
     }
 
     Channel getChannel() const { return _channel; }
     uint32_t getDataLen() const { return _dataLen; }
     const uint8_t* getData() const { return _data; }
+    IPAddress getAddress() const { return _addr; }
 
 private: 
 
     Channel _channel;
+    IPAddress _addr;
     const uint32_t _dataSize = 256;
     uint8_t _data[256];
     uint32_t _dataLen;
