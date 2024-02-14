@@ -31,6 +31,8 @@ using namespace std;
 
 namespace kc1fsz {
 
+static const char* LOGIC_ERROR = "LOGIC ERROR";
+
 int PicoUartChannel::traceLevel = 0;
 
 PicoUartChannel* PicoUartChannel::_INSTANCE = 0;
@@ -40,15 +42,14 @@ PicoUartChannel::PicoUartChannel(uart_inst_t* uart,
     uint8_t* txBuffer, uint32_t txBufferSize)
 :   _uart(uart),
     _irq((_uart == uart0) ? UART0_IRQ : UART1_IRQ),
-    _readBuffer(readBuffer),
-    _readBufferSize(readBufferSize),
-    _readBufferUsed(0),
+    _rxBuffer(readBuffer),
+    _rxBufferSize(readBufferSize),
+    _rxBufferRecvCount(0),
+    _rxBufferReadCount(0),
     _txBuffer(txBuffer),
     _txBufferSize(txBufferSize),
     _txBufferWriteCount(0),
     _txBufferSentCount(0) {
-
-    critical_section_init_with_lock_num(&_sectRead, 0);
 
     // Install handler
     _INSTANCE = this;
@@ -63,13 +64,11 @@ PicoUartChannel::PicoUartChannel(uart_inst_t* uart,
 }
 
 PicoUartChannel::~PicoUartChannel() {
-    critical_section_deinit(&_sectRead);
 }
 
 void PicoUartChannel::resetCounters() {
     _isrCountRead = 0;
-    _bytesReceived = 0;
-    _readBytesLost= 0;      
+    _rxBytesLost= 0;      
 }
 
 bool PicoUartChannel::PicoUartChannel::isReadable() const {
@@ -81,10 +80,13 @@ bool PicoUartChannel::PicoUartChannel::isWritable() const {
 }
 
 uint32_t PicoUartChannel::bytesReadable() const {
-    const_cast<PicoUartChannel*>(this)->_lockRead();
-    uint32_t r = _readBufferUsed;
-    const_cast<PicoUartChannel*>(this)->_unlockRead();
-    return r;
+    // NOTE: Wrap-around case is addressed on each increment
+    uint32_t used = _rxBufferRecvCount - _rxBufferReadCount;
+    // Sanity check
+    if (used >= _rxBufferSize) {
+        panic(LOGIC_ERROR);
+    }
+    return _rxBufferSize - used - 1;
 }
 
 uint32_t PicoUartChannel::bytesWritable() const {
@@ -92,7 +94,7 @@ uint32_t PicoUartChannel::bytesWritable() const {
     uint32_t used = _txBufferWriteCount - _txBufferSentCount;
     // Sanity check
     if (used >= _txBufferSize) {
-        panic("Logic error 2");
+        panic(LOGIC_ERROR);
     }
     uint32_t available = _txBufferSize - used - 1;
     return available;
@@ -100,27 +102,25 @@ uint32_t PicoUartChannel::bytesWritable() const {
 
 uint32_t PicoUartChannel::read(uint8_t* buf, uint32_t bufCapacity) {
 
-    _lockRead();
-
     // Memory sync
     __dsb();
 
-    // Figure out how much we can give
-    uint32_t moveSize = std::min(bufCapacity, _readBufferUsed);
-    if (moveSize > 0) {
-        // Give the caller their data
-        memcpy(buf, _readBuffer, moveSize);
-        _readBufferUsed -= moveSize;
-        // Shift any remaining data back to the start (should not be the norm)
-        if (moveSize < _readBufferUsed) {
-            //memcpy(_readBuffer, _readBuffer + moveSize, _readBufferUsed);
-            for (uint32_t i = 0; i < _readBufferUsed; i++) {
-                _readBuffer[i] = _readBuffer[moveSize + i];
-            }
+    uint32_t startRxBufferRecvCount = _rxBufferRecvCount;
+    uint32_t moveSize = 0;
+
+    while (moveSize < bufCapacity && startRxBufferRecvCount > _rxBufferReadCount) {
+        // TODO: Switch to mask
+        uint32_t slot = _rxBufferReadCount % _rxBufferSize;
+        buf[moveSize++] = _rxBuffer[slot];
+        _rxBufferReadCount++;
+        // Look for wrap
+        if (_rxBufferReadCount == 0) {
+            // TODO: CONSIDER A CRTIICAL SECTION SINCE BOTH OF THESE
+            // NEED TO MOVE IN TANDEM
+            _rxBufferReadCount += (_rxBufferSize * 2);
+            _rxBufferRecvCount += (_rxBufferSize * 2);
         }
     }
-
-    _unlockRead();
 
     if (traceLevel > 0) {
         cout << "PicoUartChannel::read()" << endl;
@@ -139,7 +139,7 @@ uint32_t PicoUartChannel::write(const uint8_t* buf, uint32_t bufLen) {
 
     // Santity check - the sending should never get ahead
     if (_txBufferWriteCount < _txBufferSentCount) {
-        panic("Logic error 1");
+        panic(LOGIC_ERROR);
     }
 
     // We immediately buffer all outbound data, regardless of the UART 
@@ -148,7 +148,7 @@ uint32_t PicoUartChannel::write(const uint8_t* buf, uint32_t bufLen) {
     uint32_t used = _txBufferWriteCount - _txBufferSentCount;
     // Sanity check
     if (used >= _txBufferSize) {
-        panic("Logic error 2");
+        panic(LOGIC_ERROR);
     }
     uint32_t available = _txBufferSize - used - 1;
     // Move as much as possible
@@ -160,8 +160,9 @@ uint32_t PicoUartChannel::write(const uint8_t* buf, uint32_t bufLen) {
         _txBufferWriteCount++;
         // EDGE CASE: If the counter just wrapped to zero then 
         // shift both the write counter and the sent counter to 
-        // get away from this tricky edge case.
+        // get away from this tricky edge case. (rare)
         if (_txBufferWriteCount == 0) {
+            // TODO: CONSIDER CRITICAL SECTION?
             _txBufferWriteCount += (_txBufferSize * 2);
             _txBufferSentCount += (_txBufferSize * 2);
         }
@@ -174,7 +175,7 @@ bool PicoUartChannel::run() {
 
     // Santity check - the sending should never get ahead
     if (_txBufferWriteCount < _txBufferSentCount) {
-        panic("Logic error 1");
+        panic(LOGIC_ERROR);
     }
 
     // Send as much as possible
@@ -188,8 +189,9 @@ bool PicoUartChannel::run() {
         _txBufferSentCount++;
         // EDGE CASE: If the counter just wrapped to zero then 
         // shift both the write counter and the send counter to 
-        // get away from this tricky edge case.
+        // get away from this tricky edge case. (rare)
         if (_txBufferSentCount == 0) {
+            // TODOD: CONSIDER CRITICAL SECTION TO KEEP THESE IN SYNC
             _txBufferWriteCount += (_txBufferSize * 2);
             _txBufferSentCount += (_txBufferSize * 2);
         }
@@ -204,8 +206,11 @@ void PicoUartChannel::_ISR() {
 }
 
 // IMPORTANT: There is an assumption here that interrupts are disabled
-// while working inside of the ISR.
+// while working inside of the ISR. So nothing else is changing.
 void PicoUartChannel::_readISR() {
+
+    // Memory sync
+    __dsb();
 
     _isrCountRead++;
 
@@ -219,23 +224,31 @@ void PicoUartChannel::_readISR() {
         // Check to see if we're at capacity on the read buffer.
         // If the read buffer is full then we can assume that 
         // there's a good chance that we are losing bytes here.
-        if (_readBufferUsed == _readBufferSize) {
-            _readBytesLost++;
-            break;
+
+        uint32_t used = _rxBufferRecvCount - _rxBufferReadCount;
+        // Sanity check
+        if (used >= _rxBufferSize) {
+            panic(LOGIC_ERROR);
+        }
+
+        uint32_t available = _rxBufferSize - used - 1;
+
+        if (available == 0) {
+            _rxBytesLost++;
+            return;
         } 
-        else {
-            _bytesReceived++;
-            _readBuffer[_readBufferUsed++] = c;
+
+        // TODO: Switch to mask
+        uint32_t slot = _rxBufferRecvCount % _rxBufferSize;
+        _rxBuffer[slot] = c;
+        _rxBufferRecvCount++;
+
+        // Look for wrap-around of the counter (rare)
+        if (_rxBufferRecvCount == 0) {
+            _rxBufferReadCount += (_rxBufferSize * 2);
+            _rxBufferRecvCount += (_rxBufferSize * 2);
         }
     }
-}
-
-void PicoUartChannel::_lockRead() {
-    critical_section_enter_blocking(&_sectRead);
-}
-
-void PicoUartChannel::_unlockRead() {
-    critical_section_exit(&_sectRead);
 }
 
 }

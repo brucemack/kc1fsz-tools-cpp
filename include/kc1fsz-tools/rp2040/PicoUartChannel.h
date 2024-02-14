@@ -78,9 +78,9 @@ public:
      */
     uint32_t getIsrCountRead() const { return _isrCountRead; }
 
-    uint32_t getReadBytesLost() const { return _readBytesLost; }
+    uint32_t getReadBytesLost() const { return _rxBytesLost; }
 
-    uint32_t getBytesReceived() const { return _bytesReceived; }
+    uint32_t getBytesReceived() const { return _rxBufferRecvCount; }
 
     uint32_t getBytesSent() const { return _txBufferSentCount; }
 
@@ -119,18 +119,14 @@ private:
 
     void _attemptTx();
     void _readISR();
-
-    void _lockRead();
-    void _unlockRead();
     
     uart_inst_t* _uart;
     volatile int _irq;
-    uint8_t* _readBuffer;
-    const uint32_t _readBufferSize;
-    uint32_t _readBufferUsed;
 
-    // Used for protecting shared memory
-    critical_section_t _sectRead;
+    uint8_t* _rxBuffer;
+    const uint32_t _rxBufferSize;
+    volatile uint32_t _rxBufferRecvCount;
+    volatile uint32_t _rxBufferReadCount;
 
     uint8_t* _txBuffer;
     const uint32_t _txBufferSize;
@@ -138,8 +134,7 @@ private:
     uint32_t _txBufferSentCount;
 
     volatile uint32_t _isrCountRead;
-    volatile uint32_t _readBytesLost;
-    volatile uint32_t _bytesReceived;
+    volatile uint32_t _rxBytesLost;
 };
 
 }
