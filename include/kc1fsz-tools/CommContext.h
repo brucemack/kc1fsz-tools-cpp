@@ -59,13 +59,25 @@ public:
 
     /**
      * In socket parlance, this performs the bind.
+     * A remote address/port is also associated with the channel which will 
+     * be used if no address is specifed on the send.
      */
     virtual void setupUDPChannel(Channel c, uint32_t localPort, 
         IPAddress remoteIpAddr, uint32_t remotePort) { }
 
     virtual void closeUDPChannel(Channel c) { }
 
+    /**
+     * This version assumes the address and port defined when the channel was 
+     * first setup.
+     */
     virtual void sendUDPChannel(Channel c, const uint8_t* b, uint16_t len) { }
+
+    /**
+     * This version uses an explicit target address/port.
+     */
+    virtual void sendUDPChannel(Channel c, IPAddress remoteIpAddr, uint32_t remotePort,
+        const uint8_t* b, uint16_t len) { }
 };
 
 }
