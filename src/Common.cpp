@@ -19,12 +19,26 @@
  */
 #include <cstring>
 #include <cctype>
+#include <cassert>
 #include <algorithm>
 #include <iostream>
 
 #include "kc1fsz-tools/Common.h"
 
 namespace kc1fsz {
+
+#ifndef PICO_BUILD
+void panic(const char* msg) {
+    std::cerr << "PANIC: " << msg << std::endl;
+    assert(false);
+}
+#else 
+void panic(const char* msg) {
+    std::cerr << "PANIC: " << msg << std::endl;
+    assert(false);
+}
+#endif
+
 
 void prettyHexDump(const uint8_t* data, uint32_t len, std::ostream& out,
     bool color) {
@@ -39,7 +53,10 @@ void prettyHexDump(const uint8_t* data, uint32_t len, std::ostream& out,
     for (uint32_t line = 0; line < lines; line++) {
 
         // Position counter
-        sprintf(buf, "%04X | ", line * 16);
+        int l = snprintf(buf, 16, "%04X | ", (unsigned int)line * 16);
+        if (l > 16) {
+            panic("OVERFLOW");
+        }
         out << buf;
 
         // Hex section

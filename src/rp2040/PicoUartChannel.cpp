@@ -86,7 +86,7 @@ uint32_t PicoUartChannel::bytesReadable() const {
     if (used >= _rxBufferSize) {
         panic(LOGIC_ERROR);
     }
-    return _rxBufferSize - used - 1;
+    return used;
 }
 
 uint32_t PicoUartChannel::bytesWritable() const {

@@ -46,6 +46,8 @@ void memcpyLimited(uint8_t* target, const uint8_t* source,
     uint32_t sourceLen, uint32_t targetLimit);
 
 bool isNullTerminated(const uint8_t* source, uint32_t sourceLen);
+
+void panic(const char* msg);
     
 }
 
