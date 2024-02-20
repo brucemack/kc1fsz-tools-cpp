@@ -22,7 +22,22 @@ without express or implied warranty of any kind.
 These notices must be retained in any copies of any part of this
 documentation and/or software.
  */
-#include "md5/global.h"
+#ifndef _md5_md5_h
+#define _md5_md5_h
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+/* POINTER defines a generic pointer type */
+typedef unsigned char *POINTER;
+
+/* UINT2 defines a two byte word */
+typedef unsigned short int UINT2;
+
+/* UINT4 defines a four byte word */
+typedef unsigned int UINT4;
 
 /* MD5 context. */
 typedef struct {
@@ -40,3 +55,9 @@ void MD5Print(unsigned char digest[16]);
  * Converts an MD5 digest into displayable hex format.
  */
 void MD5DigestToText(unsigned char digest[16], char output[33]);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
