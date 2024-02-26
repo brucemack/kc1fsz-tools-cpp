@@ -23,22 +23,23 @@
 
 namespace kc1fsz {
 
-AudioAnalyzer::AudioAnalyzer(int16_t* historyArea, uint32_t historyAreaSize) 
+AudioAnalyzer::AudioAnalyzer(int16_t* historyArea, uint32_t historyAreaSize, uint32_t sampleRate) 
 :   _history(historyArea),
-    _historySize(historyAreaSize) {
+    _historySize(historyAreaSize),
+    _sampleRate(sampleRate) {
     for (uint32_t i = 0; i < _historySize; i++) {
         _history[i] = 0;
     }
 }
 
-/**
-    * NOTE: Assumes PCM-16 (signed) at the moment
-    */
-void AudioAnalyzer::sample(int16_t s) {
-    _history[_writePtr++] = s;
-    if (_writePtr == _historySize) {
-        _writePtr = 0;
+bool AudioAnalyzer::play(const int16_t* frame, uint32_t frameLen) {  
+    for (uint32_t i = 0; i < frameLen; i++) {
+        _history[_historyPtr++] = frame[i];
+        if (_historyPtr == _historySize) {
+            _historyPtr = 0;
+        }
     }
+    return true;
 }
 
 float AudioAnalyzer::getRMS() const {
@@ -60,6 +61,27 @@ int16_t AudioAnalyzer::getPeak() const {
         max = std::max(max, (int16_t)std::abs(_history[i]));
     }
     return max;
+}
+
+float AudioAnalyzer::getTonePower(float freqHz) const {
+
+    float w = 2.0 * 3.1415926 * (float)freqHz / (float)_sampleRate;
+    float coeff = 2.0 * std::cos(w);
+    int16_t coeff_q14 = (1 << 14) * coeff;
+    int16_t z = 0;
+    int16_t zprev = 0;
+    int16_t zprev2 = 0;
+
+    for (uint32_t n = 0; n < _historySize; n++) {
+        int32_t mult = (int32_t)coeff_q14 * (int32_t)zprev;
+        z = (_history[n] >> 6) + (mult >> 14) - zprev2;
+        zprev2 = zprev;
+        zprev = z;
+    }
+
+    int32_t mult = (int32_t)coeff_q14 * (int32_t)zprev;
+    int32_t pz = zprev2 * zprev2 + zprev * zprev - ((int16_t)(mult >> 14)) * zprev2;
+    return (float)pz * std::pow(2.0, 12);
 }
 
 }

@@ -53,6 +53,19 @@ public:
     virtual bool run() = 0;
 
     /**
+     * Generates a CW tone
+     */
+    virtual void tone(uint32_t freq, uint32_t durationMs) { }
+
+    /**
+     * @returns The number of times that synchronization problems 
+     *   have been detected since the last reset.
+    */
+    virtual uint32_t getSyncErrorCount() { return 0; }
+
+    // ----- From AudioProcessor ----------------------------------------------
+
+    /**
      * Loads the "next" frame of PMC audio to be played.  Be careful
      * to keep this running at the frame rate since the internal 
      * implementation may not necessarily have the ability to buffer
@@ -64,18 +77,7 @@ public:
      * of the 16-bit word and some zeroes may appear in teh LSB
      * end of the word.
      */   
-    virtual bool play(const int16_t* frame) = 0;
-
-    /**
-     * Generates a CW tone
-     */
-    virtual void tone(uint32_t freq, uint32_t durationMs) { }
-
-    /**
-     * @returns The number of times that synchronization problems 
-     *   have been detected since the last reset.
-    */
-    virtual uint32_t getSyncErrorCount() { return 0; }
+    virtual bool play(const int16_t* frame, uint32_t frameSize) = 0;
 
 protected:
 

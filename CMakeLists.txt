@@ -47,6 +47,18 @@ add_executable(common-test-1
 target_include_directories(common-test-1 PRIVATE src)
 target_include_directories(common-test-1 PRIVATE include)
 
+# ------ audio-test-1 ---------------------------------------------------------
+# Target: Host
+
+add_executable(audio-test-1
+  tests/audio-test-1.cpp
+  src/Common.cpp
+  src/AudioAnalyzer.cpp
+) 
+
+target_include_directories(audio-test-1 PRIVATE src)
+target_include_directories(audio-test-1 PRIVATE include)
+
 # ------ uart-test-1 ----------------------------------------------------------
 # Target: RP2040 board
 

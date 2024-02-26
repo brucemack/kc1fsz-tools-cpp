@@ -26,7 +26,7 @@ namespace kc1fsz {
 class AudioProcessor {
 public:
 
-    virtual bool play(const int16_t* frame) = 0;
+    virtual bool play(const int16_t* frame, uint32_t frameLen) = 0;
 };
 
 }

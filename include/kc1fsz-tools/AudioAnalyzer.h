@@ -21,17 +21,26 @@
 
 #include <cstdint>
 
+#include "kc1fsz-tools/AudioProcessor.h"
+
 namespace kc1fsz {
 
-class AudioAnalyzer {
+class AudioAnalyzer : public AudioProcessor {
 public:
 
-    AudioAnalyzer(int16_t* historyArea, uint32_t historyAreaSize);
+    AudioAnalyzer(int16_t* historyArea, uint32_t historyAreaSize, 
+        uint32_t sampleRate);
 
     /**
-     * NOTE: Assumes PCM-16 (signed) at the moment
-     */
-    void sample(int16_t sample);
+     * Determines the amount of power at a given frequency.  
+     * @param freqHz The frequency to test.
+     * 
+     * NOTE: Even though the input/output are floats, the internal 
+     * implementation is fixed point for efficiency sake.
+     * 
+     * The theoretical max power will be (amp * N / 2) ^ 2
+    */
+    float getTonePower(float freqHz) const;
 
     float getRMS() const;
 
@@ -42,14 +51,21 @@ public:
 
     int16_t getPeak() const; 
 
+    // ----- From AudioProcessor ----------------------------------------------
+
+    /**
+     * NOTE: Assumes PCM-16 (signed) at the moment
+     */
+    bool play(const int16_t* frame, uint32_t frameLen);
+
 private:
 
     int16_t* _history;
     uint32_t _historySize;
-    uint32_t _writePtr = 0;
+    uint32_t _sampleRate;
+    uint32_t _historyPtr = 0;
 };
 
 }
 
 #endif
-
