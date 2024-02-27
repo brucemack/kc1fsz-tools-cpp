@@ -214,6 +214,9 @@ void PicoUartChannel::_readISR() {
 
     _isrCountRead++;
 
+    // We are very conservative here and only grab one byte at a time.  This
+    // is done to yield back as agressively as possible.
+    //if (uart_is_readable(_uart)) {
     // Keep reading until we can't
     while (uart_is_readable(_uart)) {
 
@@ -238,13 +241,14 @@ void PicoUartChannel::_readISR() {
             return;
         } 
 
-        // TODO: Switch to mask
+        // TODO: Switch to mask for speed
         uint32_t slot = _rxBufferRecvCount % _rxBufferSize;
         _rxBuffer[slot] = c;
         _rxBufferRecvCount++;
 
         // Look for wrap-around of the counter (rare)
         if (_rxBufferRecvCount == 0) {
+            // No lock needed since we are in an ISR
             _rxBufferReadCount += (_rxBufferSize * 2);
             _rxBufferRecvCount += (_rxBufferSize * 2);
         }
