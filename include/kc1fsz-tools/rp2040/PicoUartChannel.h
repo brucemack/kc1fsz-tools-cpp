@@ -19,7 +19,6 @@
 #ifndef _PicoUartChannel_h
 #define _PicoUartChannel_h
 
-#include "pico/critical_section.h"
 #include "hardware/uart.h"
 
 #include "kc1fsz-tools/AsyncChannel.h"
