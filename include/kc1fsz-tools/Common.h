@@ -48,6 +48,21 @@ void memcpyLimited(uint8_t* target, const uint8_t* source,
 bool isNullTerminated(const uint8_t* source, uint32_t sourceLen);
 
 void panic(const char* msg);
+
+/**
+ * @returns The current time in milliseconds-since-epoch
+*/
+uint32_t time_ms();
+
+/**
+ * Used for testing purposes - sets time artificially.
+ */
+void set_time_ms(uint32_t ms);
+
+/**
+ * Used for testing purposes - moves time forward artificially.
+ */
+void advance_time_ms(uint32_t ms);
     
 }
 

@@ -23,6 +23,13 @@
 #include <algorithm>
 #include <iostream>
 
+#ifdef PICO_BUILD
+#include <pico/time.h>
+#else
+#include <sys/time.h>
+#include <arpa/inet.h>
+#endif
+
 #include "kc1fsz-tools/Common.h"
 
 namespace kc1fsz {
@@ -132,6 +139,35 @@ bool isNullTerminated(const uint8_t* source, uint32_t sourceLen) {
         }
     }
     return false;
+}
+
+static bool timeFixed = false;
+static uint32_t fakeTime = 0;
+
+uint32_t time_ms() {
+    if (timeFixed) {
+        return fakeTime;
+    } else {
+#ifdef PICO_BUILD
+    absolute_time_t now = get_absolute_time();
+        return to_ms_since_boot(now);
+#else
+        struct timeval tp;
+        gettimeofday(&tp, NULL);
+        long int ms = tp.tv_sec * 1000 + tp.tv_usec / 1000;
+        return ms;
+#endif
+    }
+}
+
+void set_time_ms(uint32_t ms) {
+    fakeTime = ms;
+    timeFixed = true;
+}
+
+void advance_time_ms(uint32_t ms) {
+    fakeTime = time_ms() + ms;
+    timeFixed = true;
 }
 
 }

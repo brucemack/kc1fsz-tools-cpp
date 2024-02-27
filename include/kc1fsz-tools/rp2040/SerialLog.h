@@ -24,6 +24,7 @@
 
 #include "hardware/uart.h"
 
+#include "kc1fsz-tools/Common.h"
 #include "kc1fsz-tools/Log.h"
 #include "kc1fsz-tools/Runnable.h"
 
@@ -38,10 +39,13 @@ public:
     void setStdout(bool s) { _stdout = s; }
 
     virtual void info(const char* format, ...) {
+        
+        char buf[128];
+        snprintf(buf, 10, "%08lu ", time_ms() % 1000000);
+
         va_list argptr;
         va_start(argptr, format);
-        char buf[128];
-        vsnprintf(buf, 128, format, argptr);
+        vsnprintf(buf + 9, 128 - 9, format, argptr);
         va_end(argptr);
         _write(buf);
         if (_stdout)
@@ -49,10 +53,13 @@ public:
     }
 
     virtual void error(const char* format, ...) {
+
+        char buf[128];
+        snprintf(buf, 10, "%08lu ", time_ms() % 1000000);
+
         va_list argptr;
         va_start(argptr, format);
-        char buf[128];
-        vsnprintf(buf, 128, format, argptr);
+        vsnprintf(buf + 9, 128 - 9, format, argptr);
         va_end(argptr);
         _write(buf);
         if (_stdout)
@@ -73,6 +80,10 @@ public:
 
 private:
 
+    /**
+     * NOTE: We purposely move all actual log transmission onto the run() 
+     * loop to avoid introducing any overhead
+     */
     void _write(const char* msg) {
         for (uint32_t i = 0; i < strlen(msg); i++) {
             uint32_t slot = _writeCount & _bufSizeMask;
