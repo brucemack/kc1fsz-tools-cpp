@@ -63,6 +63,18 @@ int16_t AudioAnalyzer::getPeak() const {
     return max;
 }
 
+int16_t AudioAnalyzer::getPeakPercent() const {
+    return (getPeak() * 100) / 32767;
+}
+
+int32_t AudioAnalyzer::getAverage() const {
+    int32_t total = 0;
+    for (uint32_t i = 0; i < _historySize; i++) {
+        total += _history[i];
+    }
+    return total / (int32_t)_historySize;
+}
+
 float AudioAnalyzer::getTonePower(float freqHz) const {
 
     float w = 2.0 * 3.1415926 * (float)freqHz / (float)_sampleRate;

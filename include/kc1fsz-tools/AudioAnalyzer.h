@@ -51,6 +51,16 @@ public:
 
     int16_t getPeak() const; 
 
+    /**
+     * @returns 0 to 100
+     */
+    int16_t getPeakPercent() const; 
+
+    /**
+     * Used for managing DC offset
+     */
+    int32_t getAverage() const; 
+
     // ----- From AudioProcessor ----------------------------------------------
 
     /**
