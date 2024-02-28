@@ -18,6 +18,7 @@
  */
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 
 #include "kc1fsz-tools/AudioAnalyzer.h"
 
@@ -27,14 +28,34 @@ AudioAnalyzer::AudioAnalyzer(int16_t* historyArea, uint32_t historyAreaSize, uin
 :   _history(historyArea),
     _historySize(historyAreaSize),
     _sampleRate(sampleRate) {
+    reset();
+}
+
+void AudioAnalyzer::reset() {
     for (uint32_t i = 0; i < _historySize; i++) {
         _history[i] = 0;
     }
+    _rollingSum = 0;
+    _rollingSumSquared = 0;
 }
 
 bool AudioAnalyzer::play(const int16_t* frame, uint32_t frameLen) {  
     for (uint32_t i = 0; i < frameLen; i++) {
-        _history[_historyPtr++] = frame[i];
+        // What we are about to overrwrite
+        int16_t sample = _history[_historyPtr];
+        _rollingSum -= (int32_t)sample;
+        // We accumulate a down-shifted version to avoid overflow
+        int32_t sq = ((int32_t)sample * (int32_t)sample) >> 9;
+        _rollingSumSquared -= sq;
+        // New sample
+        sample = frame[i];
+        _rollingSum += (int32_t)sample;
+        // We accumulate a down-shifted version to avoid overflow
+        sq = ((int32_t)sample * (int32_t)sample) >> 9;
+        _rollingSumSquared += sq;
+        _history[_historyPtr] = sample;
+        // Manage wrap-around
+        _historyPtr++;
         if (_historyPtr == _historySize) {
             _historyPtr = 0;
         }
@@ -42,17 +63,20 @@ bool AudioAnalyzer::play(const int16_t* frame, uint32_t frameLen) {
     return true;
 }
 
-float AudioAnalyzer::getRMS() const {
-    float totalSquared = 0;
-    for (uint32_t i = 0; i < _historySize; i++) {
-        totalSquared += (float)_history[i] * (float)_history[i];
-    }
-    return std::sqrt(totalSquared / (float)_historySize);
+int16_t AudioAnalyzer::getRMS() const {
+    // NOTE: The accumulator is scaled down by 512, so we need to 
+    // scale back up.
+    float mean = ((float)_rollingSumSquared * 512.0) / (float)_historySize;
+    return std::sqrt(mean);
+}
+
+int16_t AudioAnalyzer::getAvg() const {
+    return (int16_t)(_rollingSum / (int32_t)_historySize);
 }
 
 float AudioAnalyzer::getPeakDBFS() const {
     int16_t max = getPeak();
-    return 2.0 * std::log((float)max / (float)32'767.0);
+    return 20.0 * std::log((float)max / (float)32'767.0);
 }
 
 int16_t AudioAnalyzer::getPeak() const {
@@ -65,14 +89,6 @@ int16_t AudioAnalyzer::getPeak() const {
 
 int16_t AudioAnalyzer::getPeakPercent() const {
     return (getPeak() * 100) / 32767;
-}
-
-int32_t AudioAnalyzer::getAverage() const {
-    int32_t total = 0;
-    for (uint32_t i = 0; i < _historySize; i++) {
-        total += _history[i];
-    }
-    return total / (int32_t)_historySize;
 }
 
 float AudioAnalyzer::getTonePower(float freqHz) const {

@@ -16,8 +16,8 @@
  *
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
-#ifndef _AudioAnalyzer_h
-#define _AudioAnalyzer_h
+#ifndef _DTMFDetector_h
+#define _DTMFDetector_h
 
 #include <cstdint>
 
@@ -25,43 +25,13 @@
 
 namespace kc1fsz {
 
-class AudioAnalyzer : public AudioProcessor {
+class DTMFDetector : public AudioProcessor {
 public:
 
-    AudioAnalyzer(int16_t* historyArea, uint32_t historyAreaSize, 
+    DTMFDetector(int16_t* historyArea, uint32_t historyAreaSize, 
         uint32_t sampleRate);
 
     void reset();
-
-    /**
-     * Determines the amount of power at a given frequency.  
-     * @param freqHz The frequency to test.
-     * 
-     * NOTE: Even though the input/output are floats, the internal 
-     * implementation is fixed point for efficiency sake.
-     * 
-     * The theoretical max power will be (amp * N / 2) ^ 2
-    */
-    float getTonePower(float freqHz) const;
-
-    int16_t getRMS() const;
-
-    /**
-     * Peak value in decibels relative to full scale
-     */
-    float getPeakDBFS() const;
-
-    int16_t getPeak() const; 
-
-    /**
-     * @returns 0 to 100
-     */
-    int16_t getPeakPercent() const; 
-
-    /**
-     * Used for managing DC offset
-     */
-    int16_t getAvg() const; 
 
     // ----- From AudioProcessor ----------------------------------------------
 
@@ -76,8 +46,6 @@ private:
     uint32_t _historySize;
     uint32_t _sampleRate;
     uint32_t _historyPtr = 0;
-    int32_t _rollingSum = 0;
-    int32_t _rollingSumSquared = 0;
 };
 
 }
