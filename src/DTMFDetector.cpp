@@ -240,8 +240,8 @@ char DTMFDetector::_detect(int16_t* samples, uint32_t N) {
 
     // Find the maximum of the combined powers
     int32_t maxCombPower = 0;
-    int maxRow, maxCol;
-    int32_t maxRowPower, maxColPower;
+    int maxRow = 0, maxCol = 0;
+    int32_t maxRowPower = 0, maxColPower = 0;
     for (int r = 0; r < 4; r++) {
         int16_t rowPower = power[r];
         for (int c = 0; c < 4; c++) {
@@ -256,9 +256,6 @@ char DTMFDetector::_detect(int16_t* samples, uint32_t N) {
             }
         }
     }
-
-    //cout << "Max row " << maxRow << " " << maxRowPower << endl;
-    //cout << "Max col " << maxCol << " " << maxColPower << endl;
 
     // Now see if any pair comes close to the maximum
     for (int r = 0; r < 4; r++) {
