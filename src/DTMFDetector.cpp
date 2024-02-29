@@ -21,6 +21,7 @@
 #include <iostream>
 
 #include "kc1fsz-tools/DTMFDetector.h"
+#include "kc1fsz-tools/Common.h"
 
 using namespace std;
 
@@ -46,11 +47,11 @@ int16_t div2(int16_t var1, int16_t var2) {
         return (int16_t)(((int32_t)var1 << 15) / ((int32_t)var2));
     } 
     else {
-        cout << "DIVISION ERROR " << var1 << " " << var2 << endl;
         return 0;
     }
 }
 
+// This is 2 * cos(2 * PI * fk / fs) for each of the 8 frequencies
 static int32_t coeff[8] = {
     27980 * 2,
     26956 * 2,
@@ -59,8 +60,28 @@ static int32_t coeff[8] = {
     19261 * 2,
     16525 * 2,
     13297 * 2,
-    9537 * 2
+     9537 * 2
  };
+
+// This is 2 * cos(2 * PI * (2 * fk) / fs) for each of the 8 frequencies.
+// Used for checking second-order harmonics.
+static int32_t harmonicCoeff[8] = {
+    15014 * 2,
+    11583 * 2,
+     7549 * 2,
+     3032 * 2,
+   -10565 * 2,
+   -16503 * 2,
+   -22318 * 2,
+   -27472 * 2
+ };
+
+static char symbolGrid[4 * 4] = {
+    '1', '2', '3', 'A',
+    '4', '5', '6', 'B',
+    '7', '8', '9', 'C',
+    '*', '0', '#', 'D'
+};
 
 DTMFDetector::DTMFDetector(int16_t* historyArea, uint32_t historyAreaSize, uint32_t sampleRate) 
 :   _history(historyArea),
@@ -73,10 +94,45 @@ void DTMFDetector::reset() {
     for (uint32_t i = 0; i < _historySize; i++) {
         _history[i] = 0;
     }
+    _symbol_1 = 0;
+    _symbol_2 = 0;
+    _resultLen = 0;
 }
 
 bool DTMFDetector::play(const int16_t* frame, uint32_t frameLen) {  
-    
+    // At the moment we can only process 160 sample or 4x160 sample frames
+    if (frameLen != 4 * 160 && frameLen != 160) {
+        panic("Frame length error");
+    }
+    _processFrame(frame, 160);
+    if (frameLen > 160) {
+        _processFrame(frame + 160, 160);
+        _processFrame(frame + 320, 160);
+        _processFrame(frame + 480, 160);
+    }
+    return true;
+}
+
+bool DTMFDetector::resultAvailable() const {
+    return _resultLen > 0;
+}
+
+char DTMFDetector::getResult() {
+    if (_resultLen > 0) {
+        char r = _result[0];
+        for (uint32_t i = 0; i < _resultLen - 1; i++) {
+            _result[i] = _result[i + 1];
+        }
+        _resultLen--;
+        return r;
+    }
+    else {
+        return 0;
+    }
+}
+
+void DTMFDetector::_processFrame(const int16_t* frame, uint32_t frameLen) {  
+
     for (uint32_t i = 0; i < frameLen; i++) {
         _history[_historyPtr] = frame[i];
         // Manage wrap-around
@@ -86,12 +142,11 @@ bool DTMFDetector::play(const int16_t* frame, uint32_t frameLen) {
         }
     }
 
-    const uint32_t N = 136;
-
-    // Process the most recent 136 samples each time
+    // Process the most recent N samples each time
     int16_t samples[N];
     uint32_t ptr = _historyPtr;
     int16_t maxVal = 0;
+
     for (uint32_t i = 0; i < N; i++) {
         // Look for reverse wrap
         if (ptr == 0) {
@@ -106,116 +161,141 @@ bool DTMFDetector::play(const int16_t* frame, uint32_t frameLen) {
             maxVal = absSample;
         }
     }
-
-    /* STRAIGHT FLOATING-POINT IMPLEMENTATION
-    {
-        float vk_1[8], vk_2[8];
-        for (int k = 0; k < 8; k++) {
-            vk_1[k] = 0; 
-            vk_2[k] = 0;
-        }
-
-        for (uint32_t i = 0; i < N; i++) {        
-            // Normalize samples
-            float sample = (((float)samples[i] / (float)maxVal)) * 32767.0;
-            // Take out a factor to avoid overflow
-            sample /= 128;
-            // Compute all 8 frequency bins
-            for (int k = 0; k < 8; k++) {
-                // This has an extra factor of 32767 in it
-                float c = (float)(coeff[k]);
-                // Remove the extra shift introduced by the multiplication
-                float r = (c * vk_1[k]) / 32767.0;
-                r -= vk_2[k];
-                r += sample;
-                vk_2[k] = vk_1[k];
-                vk_1[k] = r;
-            }
-        }     
-
-        for (int k = 0; k < 8; k++) {
-            cout << k << " " << vk_1[k] << endl;
-        }
-
-        // At this point all number have an extra factor of 32767 because of the 
-        // coefficient scaling.
-
-        for (int k = 0; k < 8; k++) {
-            // This has an extra factor of 32767 in it
-            float c = (float)(coeff[k]);
-            // This will be shifted 32767 * 32767 high (original from step 1, plus impact of mult)
-            float r = (vk_1[k] * vk_1[k]);
-            // This will be shifted 32767 * 32767 high  (original from step 1, plus impact of mult)
-            r = r + (vk_2[k] * vk_2[k]);
-            // This will be shifted 32767 * 32767 high 
-            float m = (c * vk_1[k]);
-            // This will be shifted (32767 * 32767) * 32767 / 32767 high
-            r = r - ((m / 32767.0) * vk_2[k]);
-            // Remove the extra 32767 * 32767
-            // Re-introduce the factor (squared)
-            r /= (32767.0 * 32767.0);
-            r *= (128.0 * 128.0);
-
-            cout << "RESULT " << k << " " << r << endl;
-        }
-    }
-    */
-
-    int16_t magSq[8];
-
-    {
-        int32_t vk_1[8], vk_2[8];
-        for (int k = 0; k < 8; k++) {
-            vk_1[k] = 0; 
-            vk_2[k] = 0;
-        }
-
-        for (uint32_t i = 0; i < N; i++) {        
-            // Normalize samples
-            int16_t sample = div2(samples[i], maxVal);
-            // Take out a factor to avoid overflow later
-            sample >>= 7;
-            // Compute all 8 frequency bins
-            for (int k = 0; k < 8; k++) {
-                // This has an extra factor of 32767 in it
-                int32_t c = coeff[k];
-                // Remove the extra shift introduced by the multiplication, but we
-                // are still high by 32767.
-                int32_t r = (c * vk_1[k]) >> 15;
-                r -= vk_2[k];
-                r += sample;
-                vk_2[k] = vk_1[k];
-                vk_1[k] = r;
-            }
-        }
-
-        for (int k = 0; k < 8; k++) {
-            cout << k << " " << vk_1[k] << endl;
-        }
     
-        // At this point all numbers have an extra factor of 32767 because of the 
-        // initial coefficient scaling.
+    // Apply the normalization
+    for (uint32_t i = 0; i < N; i++) {
+        samples[i] = div2(samples[i], maxVal);
+    }
 
-        for (int k = 0; k < 8; k++) {
-            // This has an extra factor of 32767 in it
-            int32_t c = coeff[k];
-            // This will be shifted 32767 * 32767 high 
-            int32_t r = (vk_1[k] * vk_1[k]);
-            // This will be shifted 32767 * 32767 high
-            r = r + (vk_2[k] * vk_2[k]);
-            // This will be shifted 32767 * 32767 high 
-            int32_t m = (c * vk_1[k]);
-            // This will be shifted (32767 / 32767) * 32767 * 32767 high
-            r = r - (((m >> 15) * vk_2[k]));
-            // Remove the extra 32767 (squared, because this is power)
-            // Re-introduce the factor (squared, because this is power)
-            r >>= (15 + 15 - (7 + 7));
-            magSq[k] = r;
-            cout << k << " " << magSq[k] << endl;
+    char symbol = _detect(samples, N);
+    
+    // Check to see if we've just formed a valid symbol for 40ms + 20ms of noise
+    if (symbol == 0 && _symbol_1 != 0 && _symbol_2 == _symbol_1) {
+        if (_resultLen < _resultSize) {
+            _result[_resultLen++] = _symbol_1;
         }
     }
 
-    return true;
+    // Keep the history going
+    _symbol_2 = _symbol_1;
+    _symbol_1 = symbol;
+}
+
+static int16_t computePower(int16_t* samples, uint32_t N, int32_t coeff) {
+
+    int32_t vk_1 = 0, vk_2 = 0;
+
+    for (uint32_t i = 0; i < N; i++) {        
+        int16_t sample = samples[i];
+        // Take out a factor to avoid overflow later
+        sample >>= 7;
+        // This has an extra factor of 32767 in it
+        int32_t c = coeff;
+        // Remove the extra shift introduced by the multiplication, but we
+        // are still high by 32767.
+        int32_t r = (c * vk_1) >> 15;
+        r -= vk_2;
+        r += sample;
+        vk_2 = vk_1;
+        vk_1 = r;
+    }
+
+    // At this point all numbers have an extra factor of 32767 because of the 
+    // initial coefficient scaling.
+
+    // This has an extra factor of 32767 in it
+    int32_t c = coeff;
+    // This will be shifted 32767 * 32767 high 
+    int32_t r = (vk_1 * vk_1);
+    // This will be shifted 32767 * 32767 high
+    r = r + (vk_2 * vk_2);
+    // This will be shifted 32767 * 32767 high 
+    int32_t m = (c * vk_1);
+    // This will be shifted (32767 / 32767) * 32767 * 32767 high
+    r = r - (((m >> 15) * vk_2));
+    // Remove the extra 32767 (squared, because this is power)
+    // Re-introduce the factor (squared, because this is power)
+    r >>= (15 + 15 - (7 + 7));
+    return (int16_t)r;
+}
+
+char DTMFDetector::_detect(int16_t* samples, uint32_t N) {
+
+    // Compute the power on the fundamental frequencies
+    int16_t power[8];
+    for (int k = 0; k < 8; k++)
+        power[k] = computePower(samples, N, coeff[k]);
+
+    // Find the maximum of the combined powers
+    int32_t maxCombPower = 0;
+    int maxRow, maxCol;
+    int32_t maxRowPower, maxColPower;
+    for (int r = 0; r < 4; r++) {
+        int16_t rowPower = power[r];
+        for (int c = 0; c < 4; c++) {
+            int16_t colPower = power[4 + c];
+            int32_t combPower = rowPower + colPower;
+            if (combPower > maxCombPower) {
+                maxCombPower = combPower;
+                maxRow = r;
+                maxRowPower = rowPower;
+                maxCol = c;
+                maxColPower = colPower;
+            }
+        }
+    }
+
+    //cout << "Max row " << maxRow << " " << maxRowPower << endl;
+    //cout << "Max col " << maxCol << " " << maxColPower << endl;
+
+    // Now see if any pair comes close to the maximum
+    for (int r = 0; r < 4; r++) {
+        int16_t rowPower = power[r];
+        for (int c = 0; c < 4; c++) {
+            int16_t colPower = power[4 + c];
+            int32_t combPower = rowPower + colPower;
+            // If the power advantage of the first place is less than 10x
+            // of the second place then the symbol is not valid.
+            if (r != maxRow && c != maxCol && 
+                combPower != 0 && (maxCombPower / combPower) < 10) {
+                return 0;
+            }
+        }
+    }
+
+    // Now check the twist between the two.  
+
+    // Make sure that the column (high group) power is not >4dB the row (low 
+    // group) power. We are shifting the numerator by 4 to allow more accurate 
+    // comparison in fixed point.
+    if ((4 * maxColPower) / maxRowPower > 6) {
+        //cout << "Twist failed: col too high" << endl;
+        return 0;
+    }
+    
+    // Make sure that the row (low group) power is not >8dB the column (high
+    // group) power. We are shifting the numerator by 4 to allow more accurate 
+    // comparison in fixed point.
+    if ((4 * maxRowPower) / maxColPower > 10) {
+        //cout << "Twist failed: row too high" << endl;
+        return 0;
+    }
+
+    // Compute the harmonic for the row and column
+    int16_t maxRowHarmonicPower = computePower(samples, N, harmonicCoeff[maxRow]);
+    int16_t maxColHarmonicPower = computePower(samples, N, harmonicCoeff[4 + maxCol]);
+
+    // Make sure the harmonics are 20dB down from the fundamentals
+    if (maxRowHarmonicPower != 0 && maxRowPower / maxRowHarmonicPower < 10) {
+        //cout << "Failed on harmonic power test row" << endl;
+        return 0;
+    }
+    if (maxColHarmonicPower != 0 && maxColPower / maxColHarmonicPower < 10) {
+        //cout << "Failed on harmonic power test col" << endl;
+        return 0;
+    }
+
+    return symbolGrid[4 * maxRow + maxCol];
 }
 
 }

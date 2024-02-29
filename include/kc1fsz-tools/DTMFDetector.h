@@ -33,6 +33,10 @@ public:
 
     void reset();
 
+    bool resultAvailable() const;
+
+    char getResult();
+
     // ----- From AudioProcessor ----------------------------------------------
 
     /**
@@ -42,10 +46,23 @@ public:
 
 private:
 
+    void _processFrame(const int16_t* frame, uint32_t frameLen);
+
+    static char _detect(int16_t* samples, uint32_t N);
+
     int16_t* _history;
     uint32_t _historySize;
     uint32_t _sampleRate;
     uint32_t _historyPtr = 0;
+    // Numer of samples in the DFT block
+    static const uint32_t N = 136;    
+
+    // Short history
+    char _symbol_1 = 0, _symbol_2 = 0;
+    // The good results
+    static const uint32_t _resultSize = 16;
+    char _result[_resultSize];
+    uint32_t _resultLen = 0;
 };
 
 }
