@@ -94,6 +94,7 @@ void DTMFDetector::reset() {
     for (uint32_t i = 0; i < _historySize; i++) {
         _history[i] = 0;
     }
+    _historyPtr = 0;
     _symbol_1 = 0;
     _symbol_2 = 0;
     _resultLen = 0;
@@ -181,14 +182,23 @@ void DTMFDetector::_processFrame(const int16_t* frame, uint32_t frameLen) {
     _symbol_1 = symbol;
 }
 
+/**
+ * A classic implementation of the Goertzel algorithm in fixed point.
+*/
 static int16_t computePower(int16_t* samples, uint32_t N, int32_t coeff) {
 
     int32_t vk_1 = 0, vk_2 = 0;
 
+    // This is the amount that we down-shift the sample in order to 
+    // preserve precision as we go through the Goertzel iterations.
+    // This number very much depends on N, so pay close attention 
+    // if N changes.
+    const int sampleShift = 7;
+
     for (uint32_t i = 0; i < N; i++) {        
         int16_t sample = samples[i];
         // Take out a factor to avoid overflow later
-        sample >>= 7;
+        sample >>= sampleShift;
         // This has an extra factor of 32767 in it
         int32_t c = coeff;
         // Remove the extra shift introduced by the multiplication, but we
@@ -215,7 +225,7 @@ static int16_t computePower(int16_t* samples, uint32_t N, int32_t coeff) {
     r = r - (((m >> 15) * vk_2));
     // Remove the extra 32767 (squared, because this is power)
     // Re-introduce the factor (squared, because this is power)
-    r >>= (15 + 15 - (7 + 7));
+    r >>= (15 + 15 - (sampleShift + sampleShift));
     return (int16_t)r;
 }
 
