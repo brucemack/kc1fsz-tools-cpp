@@ -63,7 +63,7 @@ private:
     static const uint32_t N = 136;    
 
     // Short history
-    char _symbol_1, _symbol_2;
+    char _symbol_1, _symbol_2, _symbol_3;
     // The good results
     static const uint32_t _resultSize = 16;
     char _result[_resultSize];

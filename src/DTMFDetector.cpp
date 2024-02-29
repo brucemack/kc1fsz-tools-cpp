@@ -97,6 +97,7 @@ void DTMFDetector::reset() {
     _historyPtr = 0;
     _symbol_1 = 0;
     _symbol_2 = 0;
+    _symbol_3 = 0;
     _resultLen = 0;
 }
 
@@ -170,14 +171,15 @@ void DTMFDetector::_processFrame(const int16_t* frame, uint32_t frameLen) {
 
     char symbol = _detect(samples, N);
     
-    // Check to see if we've just formed a valid symbol for 40ms + 20ms of noise
-    if (symbol == 0 && _symbol_1 != 0 && _symbol_2 == _symbol_1) {
+    // Check to see if we've just formed a valid symbol for 40ms + 40ms of noise
+    if (symbol == 0 && _symbol_1 == 0 && _symbol_2 != 0 && _symbol_3 == _symbol_2) {
         if (_resultLen < _resultSize) {
-            _result[_resultLen++] = _symbol_1;
+            _result[_resultLen++] = _symbol_2;
         }
     }
 
     // Keep the history going
+    _symbol_3 = _symbol_2;
     _symbol_2 = _symbol_1;
     _symbol_1 = symbol;
 }
