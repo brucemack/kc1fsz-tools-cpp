@@ -266,7 +266,8 @@ char DTMFDetector::_detect(int16_t* samples, uint32_t N) {
             // If the power advantage of the first place is less than 10x
             // of the second place then the symbol is not valid.
             if (r != maxRow && c != maxCol && 
-                combPower != 0 && (maxCombPower / combPower) < 10) {
+                combPower != 0 && 
+                (maxCombPower / combPower) < 10) {
                 return 0;
             }
         }
@@ -285,8 +286,11 @@ char DTMFDetector::_detect(int16_t* samples, uint32_t N) {
     // Make sure that the row (low group) power is not >8dB the column (high
     // group) power. We are shifting the numerator by 4 to allow more accurate 
     // comparison in fixed point.
-    if ((4 * maxRowPower) / maxColPower > 10) {
-        //cout << "Twist failed: row too high" << endl;
+    // TEMP: EXPANDING THE RANGE TO 12dB BECAUSE OF PROBLEMS ON THE HIGH END WITH
+    // THE FT-65
+    //if ((4 * maxRowPower) / maxColPower > 10) {
+    if ((4 * maxRowPower) / maxColPower > 11) {
+        //cout << "Twist failed: row too high " << maxRowPower << " " << maxColPower << endl;
         return 0;
     }
 
@@ -300,7 +304,7 @@ char DTMFDetector::_detect(int16_t* samples, uint32_t N) {
         return 0;
     }
     if (maxColHarmonicPower != 0 && maxColPower / maxColHarmonicPower < 10) {
-        //cout << "Failed on harmonic power test col" << endl;
+        //cout << "Failed on harmonic power test col " << maxColPower << " " << maxColHarmonicPower << endl;
         return 0;
     }
 
