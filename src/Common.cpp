@@ -35,10 +35,10 @@
 namespace kc1fsz {
 
 #ifndef PICO_BUILD
-void panic(const char* msg) {
-    std::cerr << "PANIC: " << msg << std::endl;
-    assert(false);
-}
+//void panic(const char* msg) {
+//    std::cerr << "PANIC: " << msg << std::endl;
+//    assert(false);
+//}
 #else 
 void panic(const char* msg) {
     std::cerr << "PANIC: " << msg << std::endl;

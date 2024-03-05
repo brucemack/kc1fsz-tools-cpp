@@ -24,9 +24,10 @@ namespace kc1fsz {
 class Channel {
 public:
 
-    Channel() : _id(0) { }
+    Channel() : _id(0), _isGood(false) { }
     Channel(const Channel& that) : _id(that._id), _isGood(that._isGood) { }
     Channel(int id, bool isGood = true) : _id(id), _isGood(isGood) { }
+    Channel& operator= (const Channel& that) { _id = that._id; _isGood = that._isGood; return *this; }
     int getId() const { return _id; }
     bool isGood() const { return _isGood; }
     bool operator== (const Channel& that) { return _id == that._id && _isGood == that._isGood; }
