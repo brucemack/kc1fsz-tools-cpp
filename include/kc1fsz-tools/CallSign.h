@@ -34,6 +34,7 @@ public:
     const char* c_str() { return _callSign; }
     uint32_t len() const { return std::strlen(_callSign); }
     bool operator== (const char* other) const { return strcmp(_callSign, other) == 0; }
+    bool operator== (const CallSign& that) const { return strcmp(_callSign, that._callSign) == 0; }
 
 private:
 

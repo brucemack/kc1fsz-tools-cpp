@@ -29,11 +29,12 @@ public:
     IPAddress() : _addr(0) { }
     IPAddress(const IPAddress& that) : _addr(that._addr) { }
     IPAddress(uint32_t addr) { _addr = addr; }
+    bool operator== (const IPAddress& that) const { return _addr == that._addr; }
+
     uint32_t getAddr() const { return _addr; }
 
 private:
 
-    // IMPORTANT: This is stored in network byte order!
     uint32_t _addr;
 };
 
