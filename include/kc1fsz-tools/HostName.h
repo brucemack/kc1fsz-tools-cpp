@@ -19,6 +19,8 @@
 #ifndef _HostName_h
 #define _HostName_h
 
+#include <cstring>
+
 #include "Common.h"
 
 namespace kc1fsz {
@@ -26,21 +28,13 @@ namespace kc1fsz {
 class HostName {
 public:
 
-    HostName() {
-        _name[0] = 0;
-    }
+    HostName() { _name[0] = 0; }
+    HostName(const char* n) { setName(n); }
 
-    HostName(const char* n) {
-        setName(n);
-    }
+    void setName(const char* n) { strcpyLimited(_name, n, 32); }
+    const char* c_str() const { return _name; }
 
-    void setName(const char* n) {
-        strcpyLimited(_name, n, 32);
-    }
-
-    const char* c_str() const {
-        return _name;
-    }
+    bool operator== (const HostName& that) const { return strcmp(_name, that._name) == 0; }
 
 private:
 
