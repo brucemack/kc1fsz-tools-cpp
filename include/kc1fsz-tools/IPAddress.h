@@ -20,6 +20,7 @@
 #define _IPAddress_h
 
 #include <cstdint>
+#include "Common.h"
 
 namespace kc1fsz {
 
@@ -28,10 +29,18 @@ public:
 
     IPAddress() : _addr(0) { }
     IPAddress(const IPAddress& that) : _addr(that._addr) { }
-    IPAddress(uint32_t addr) { _addr = addr; }
+    IPAddress(uint32_t addr) : _addr(addr) { }
     bool operator== (const IPAddress& that) const { return _addr == that._addr; }
 
     uint32_t getAddr() const { return _addr; }
+
+    /**
+     * Fills in the buffer with the decimal representation.  The 
+     * buffer must include space for the null-termination.
+     */
+    void formatAsDottedDecimal(char* dottedAddr, uint32_t dottedAddrSize) {
+        formatIP4Address(_addr, dottedAddr, dottedAddrSize);
+    }
 
 private:
 

@@ -63,7 +63,17 @@ void set_time_ms(uint32_t ms);
  * Used for testing purposes - moves time forward artificially.
  */
 void advance_time_ms(uint32_t ms);
-    
+
+/**
+ * Puts the address into a string in decimal-dotted format.
+ *
+ * @param addr IP4 address expressed as a 32-bit integer.  The
+ * assumption is that the endian thing has been sorted out 
+ * before this point and the most-significant bits of the integer
+ * are the left-most parts of the dotted address display.
+ */
+void formatIP4Address(uint32_t addr, char* dottedAddr, uint32_t dottedAddrSize);
+
 }
 
 #endif
