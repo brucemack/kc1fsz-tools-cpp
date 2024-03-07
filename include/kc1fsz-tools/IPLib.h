@@ -41,6 +41,8 @@ public:
 class IPLib {
 public:
 
+    virtual bool isLinkUp() const = 0;
+
     /**
      * This can be called more than once to register multiple listeners.
      */
