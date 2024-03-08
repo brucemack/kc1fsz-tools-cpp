@@ -21,6 +21,7 @@
 #ifndef _IPLib_h
 #define _IPLib_h
 
+#include "kc1fsz-tools/Channel.h"
 #include "kc1fsz-tools/HostName.h"
 #include "kc1fsz-tools/IPAddress.h"
 
@@ -38,6 +39,10 @@ public:
     virtual void err(Channel ch, int type) = 0;
 };
 
+/**
+ * An abstraction of a TCP/IP capability. Used to avoid building specific 
+ * socket libraries or AT command sets into an application.
+*/
 class IPLib {
 public:
 
