@@ -36,6 +36,8 @@ public:
     bool operator== (const char* other) const { return strcmp(_callSign, other) == 0; }
     bool operator== (const CallSign& that) const { return strcmp(_callSign, that._callSign) == 0; }
 
+    bool isNull() const { return _callSign[0] == 0; }
+
 private:
 
     char _callSign[32];
