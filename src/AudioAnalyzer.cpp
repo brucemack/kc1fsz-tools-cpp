@@ -40,6 +40,9 @@ void AudioAnalyzer::reset() {
 }
 
 bool AudioAnalyzer::play(const int16_t* frame, uint32_t frameLen) {  
+    if (!_enabled) {
+        return false;
+    }
     for (uint32_t i = 0; i < frameLen; i++) {
         // What we are about to overrwrite
         int16_t sample = _history[_historyPtr];
@@ -68,6 +71,10 @@ int16_t AudioAnalyzer::getRMS() const {
     // scale back up.
     float mean = ((float)_rollingSumSquared * 512.0) / (float)_historySize;
     return std::sqrt(mean);
+}
+
+uint32_t AudioAnalyzer::getMS() const {
+    return (_rollingSumSquared * 512) / _historySize;
 }
 
 int16_t AudioAnalyzer::getAvg() const {

@@ -33,6 +33,8 @@ public:
 
     void reset();
 
+    void setEnabled(bool en) { _enabled = en; }
+
     /**
      * Determines the amount of power at a given frequency.  
      * @param freqHz The frequency to test.
@@ -44,7 +46,16 @@ public:
     */
     float getTonePower(float freqHz) const;
 
+    /**
+     * NOTE: This contains a square root
+     */
     int16_t getRMS() const;
+
+    /**
+     * @returns Mean squared.  Will always be positive.
+     * NOTE: This does not contains a square root.
+     */
+    uint32_t getMS() const;
 
     /**
      * Peak value in decibels relative to full scale
@@ -77,7 +88,8 @@ private:
     uint32_t _sampleRate;
     uint32_t _historyPtr = 0;
     int32_t _rollingSum = 0;
-    int32_t _rollingSumSquared = 0;
+    uint32_t _rollingSumSquared = 0;
+    bool _enabled = false;
 };
 
 }
