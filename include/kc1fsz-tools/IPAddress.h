@@ -38,7 +38,7 @@ public:
      * Fills in the buffer with the decimal representation.  The 
      * buffer must include space for the null-termination.
      */
-    void formatAsDottedDecimal(char* dottedAddr, uint32_t dottedAddrSize) {
+    void formatAsDottedDecimal(char* dottedAddr, uint32_t dottedAddrSize) const {
         formatIP4Address(_addr, dottedAddr, dottedAddrSize);
     }
 

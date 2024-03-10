@@ -34,7 +34,7 @@ public:
     FixedString() { _s[0] = 0; }
     FixedString(const FixedString& that) { strcpyLimited(_s, that._s, 64); }
     FixedString(const char* s) { strcpyLimited(_s, s, 64); }
-    const char* c_str() { return _s; }
+    const char* c_str() const { return _s; }
     uint32_t len() const { return std::strlen(_s); }
 
 private:

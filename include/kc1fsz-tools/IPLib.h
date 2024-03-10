@@ -61,7 +61,8 @@ public:
 
     virtual Channel createUDPChannel() = 0;
     virtual void bindUDPChannel(Channel c, uint32_t localPort) = 0;
-    virtual void sendUDPChannel(Channel c, IPAddress remoteAddr, uint32_t remotePort,
+    virtual void sendUDPChannel(const Channel& c, 
+        const IPAddress& remoteAddr, uint32_t remotePort,
         const uint8_t* b, uint16_t len) = 0;
 
     virtual void closeChannel(Channel c) = 0;
