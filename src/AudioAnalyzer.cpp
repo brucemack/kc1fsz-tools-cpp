@@ -22,6 +22,8 @@
 
 #include "kc1fsz-tools/AudioAnalyzer.h"
 
+using namespace std;
+
 namespace kc1fsz {
 
 AudioAnalyzer::AudioAnalyzer(int16_t* historyArea, uint32_t historyAreaSize, uint32_t sampleRate) 
@@ -44,18 +46,21 @@ bool AudioAnalyzer::play(const int16_t* frame, uint32_t frameLen) {
         return false;
     }
     for (uint32_t i = 0; i < frameLen; i++) {
+
         // What we are about to overrwrite
         int16_t sample = _history[_historyPtr];
         _rollingSum -= (int32_t)sample;
         // We accumulate a down-shifted version to avoid overflow
         int32_t sq = ((int32_t)sample * (int32_t)sample) >> 9;
         _rollingSumSquared -= sq;
+
         // New sample
         sample = frame[i];
         _rollingSum += (int32_t)sample;
         // We accumulate a down-shifted version to avoid overflow
         sq = ((int32_t)sample * (int32_t)sample) >> 9;
         _rollingSumSquared += sq;
+
         _history[_historyPtr] = sample;
         // Manage wrap-around
         _historyPtr++;
@@ -64,6 +69,12 @@ bool AudioAnalyzer::play(const int16_t* frame, uint32_t frameLen) {
         }
     }
     return true;
+}
+
+void AudioAnalyzer::dump(std::ostream& s) const {
+    for (uint32_t i = 0; i < _historySize; i++) {
+        s << _history[i] << endl;
+    }
 }
 
 int16_t AudioAnalyzer::getRMS() const {

@@ -20,6 +20,7 @@
 #define _AudioAnalyzer_h
 
 #include <cstdint>
+#include <iostream>
 
 #include "kc1fsz-tools/AudioProcessor.h"
 
@@ -73,6 +74,8 @@ public:
      * Used for managing DC offset
      */
     int16_t getAvg() const; 
+
+    void dump(std::ostream& s) const;
 
     // ----- From AudioProcessor ----------------------------------------------
 
