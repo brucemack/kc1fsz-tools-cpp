@@ -29,6 +29,11 @@ class AsyncChannel : public Runnable {
 public:
 
     /**
+     * Brings the channel to an initial/known state.  
+    */
+    virtual void reset() { }
+
+    /**
      * Tells the channel to make forward progress, whatever that 
      * means in its context.
      * 
@@ -47,6 +52,7 @@ public:
     virtual bool isWritable() const = 0;
 
     virtual uint32_t bytesReadable() const = 0;
+
     virtual uint32_t bytesWritable() const = 0;
 
     /**

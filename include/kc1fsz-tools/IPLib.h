@@ -46,11 +46,17 @@ public:
 class IPLib {
 public:
 
+    /**
+     * Brings the system to an initial/known state.  Any existing 
+     * channels are closed.
+    */
+    virtual void reset() { }
+
     virtual bool isLinkUp() const = 0;
 
     /**
      * This can be called more than once to register multiple listeners.
-     */
+    */
     virtual void addEventSink(IPLibEvents* e) = 0;
 
     virtual void queryDNS(HostName hostName) = 0;
