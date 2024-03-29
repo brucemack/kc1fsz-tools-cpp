@@ -20,6 +20,7 @@
 #define _IPAddress_h
 
 #include <cstdint>
+
 #include "Common.h"
 
 namespace kc1fsz {
@@ -46,6 +47,16 @@ private:
 
     uint32_t _addr;
 };
+
+struct IP4AddressAndPort {
+    IPAddress addr;
+    uint16_t port;
+};
+
+/**
+ * Parses a string in a.b.c.d:p format.
+ */
+IP4AddressAndPort parseAddressAndPort(const char* a);
 
 }
 

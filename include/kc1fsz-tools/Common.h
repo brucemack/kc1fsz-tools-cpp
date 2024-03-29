@@ -74,6 +74,13 @@ void advance_time_ms(uint32_t ms);
  */
 void formatIP4Address(uint32_t addr, char* dottedAddr, uint32_t dottedAddrSize);
 
+/**
+ * Converts the dotted-decimal IP address into a 32-bit integer.
+ * @param len If non-zero, only this many characters are processed. 
+ *   Otherwise, go to the null.
+ */
+uint32_t parseIP4Address(const char* dottedAddr, uint32_t len = 0);
+
 }
 
 #endif

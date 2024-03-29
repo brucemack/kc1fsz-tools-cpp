@@ -1,4 +1,3 @@
-
 /**
  * Copyright (C) 2024, Bruce MacKinnon KC1FSZ
  *
@@ -177,6 +176,46 @@ void formatIP4Address(uint32_t addr, char* dottedAddr, uint32_t dottedAddrSize) 
     uint32_t c = (addr & 0x0000ff00) >> 8;
     uint32_t d = (addr & 0x000000ff);
     snprintf(dottedAddr, dottedAddrSize, "%lu.%lu.%lu.%lu", a, b, c, d);
+}
+
+uint32_t parseIP4Address(const char* dottedAddr, uint32_t len) {
+    uint32_t result = 0;
+    char acc[8];
+    uint32_t accLen = 0;
+    const char *p = dottedAddr;
+    uint32_t octets = 4;
+
+    // If a limit has been specifed, calculate the stopping point
+    const char* lastChar = 0;
+    if (len != 0) {
+        lastChar = dottedAddr + len - 1;
+    }
+
+    while (true) {
+        if (*p == '.' || *p == 0 || p == lastChar) {
+            acc[accLen] = 0;
+            // Shift up
+            result <<= 8;
+            // Accumulate LSB
+            result |= (uint8_t)atoi(acc);
+            accLen = 0;
+            // Count octets
+            octets++;
+            // Done yet?
+            if (octets == 4 || *p == 0 || p == lastChar) {
+                break;
+            }
+        }
+        else {
+            acc[accLen++] = *p;
+        }
+        p++;
+    }
+#ifdef PICO_BUILD
+    return result;
+#else
+    return htonl(result);
+#endif
 }
 
 }
