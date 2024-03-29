@@ -77,6 +77,8 @@ public:
 
     void dump(std::ostream& s) const;
 
+    bool sanityCheck() const;
+
     // ----- From AudioProcessor ----------------------------------------------
 
     /**

@@ -41,6 +41,17 @@ void AudioAnalyzer::reset() {
     _rollingSumSquared = 0;
 }
 
+bool AudioAnalyzer::sanityCheck() const {
+    int32_t rs = 0;
+    uint32_t rss = 0;
+    for (uint32_t i = 0; i < _historySize; i++) {
+        rs += (int32_t)_history[i];
+        int32_t sq = ((int32_t)_history[i] * (int32_t)_history[i]) >> 9;
+        rss += sq;
+    }
+    return _rollingSum == rs && _rollingSumSquared == rss;
+}
+
 bool AudioAnalyzer::play(const int16_t* frame, uint32_t frameLen) {  
     if (!_enabled) {
         return false;
