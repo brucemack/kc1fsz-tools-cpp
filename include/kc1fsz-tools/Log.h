@@ -22,6 +22,10 @@
 #include <cstdarg>
 #include <iostream>
 
+#ifndef PICO_BUILD
+#include <time.h>       /* time_t, struct tm, time, localtime, strftime */
+#endif
+
 namespace kc1fsz {
 
 class Log {
@@ -33,7 +37,11 @@ public:
         char buf[128];
         vsnprintf(buf, 128, format, argptr);
         va_end(argptr);
-        std::cout << "I: " << buf << std::endl;
+
+        char timeBuf[32];
+        _fmtTime(timeBuf, 32);
+
+        std::cout << "I: " << timeBuf << " " << buf << std::endl;
     }
 
     virtual void error(const char* format, ...) {
@@ -42,9 +50,25 @@ public:
         char buf[128];
         vsnprintf(buf, 128, format, argptr);
         va_end(argptr);
-        std::cout << "E: " << buf << std::endl;
+
+        char timeBuf[32];
+        _fmtTime(timeBuf, 32);
+
+        std::cout << "E: " << timeBuf << " " << buf << std::endl;
     }
 
+protected:
+
+    void _fmtTime(char* buf, uint32_t len) {
+#ifdef PICO_BUILD
+        buf[0] = 0;
+#else
+        time_t rawtime;
+        time (&rawtime);
+        struct tm * timeinfo = localtime(&rawtime);
+        strftime (buf, len, "%T.%f", timeinfo);
+#endif
+    }
 };
 
 }
