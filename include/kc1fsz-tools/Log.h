@@ -26,6 +26,8 @@
 #include <time.h>       /* time_t, struct tm, time, localtime, strftime */
 #endif
 
+#include "kc1fsz-tools/Common.h"
+
 namespace kc1fsz {
 
 class Log {
@@ -57,6 +59,26 @@ public:
         std::cout << "E: " << timeBuf << " " << buf << std::endl;
     }
 
+    virtual void debugDump(const char* msg, 
+        const uint8_t* data, uint32_t dataLen) {
+
+        char timeBuf[32];
+        _fmtTime(timeBuf, 32);
+
+        std::cout << "D: " << timeBuf << " " << msg << std::endl;
+        prettyHexDump(data, dataLen, std::cout);
+    }
+
+    virtual void infoDump(const char* msg, 
+        const uint8_t* data, uint32_t dataLen) {
+
+        char timeBuf[32];
+        _fmtTime(timeBuf, 32);
+
+        std::cout << "I: " << timeBuf << " " << msg << std::endl;
+        prettyHexDump(data, dataLen, std::cout);
+    }
+
 protected:
 
     void _fmtTime(char* buf, uint32_t len) {
@@ -66,11 +88,10 @@ protected:
         time_t rawtime;
         time (&rawtime);
         struct tm * timeinfo = localtime(&rawtime);
-        strftime (buf, len, "%T.%f", timeinfo);
+        strftime (buf, len, "%T", timeinfo);
 #endif
     }
 };
-
 }
 
 #endif
