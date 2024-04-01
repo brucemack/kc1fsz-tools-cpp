@@ -30,6 +30,14 @@ namespace kc1fsz {
 class IPLibEvents {
 public:
 
+    /**
+     * This event is triggered when the state of the IP system 
+     * has been reset.  All internal state is cleared before
+     * this event is raised so the user must re-establish 
+     * any binds/connectons.
+     */
+    virtual void reset() = 0;
+    
     virtual void dns(HostName name, IPAddress addr) = 0;
     virtual void bind(Channel ch) = 0;
     virtual void conn(Channel ch) = 0;

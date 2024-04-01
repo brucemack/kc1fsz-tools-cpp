@@ -22,6 +22,8 @@
 #include <cstdarg>
 #include <iostream>
 
+#include "kc1fsz-tools/Common.h"
+
 namespace kc1fsz {
 
 class Log {
@@ -45,6 +47,17 @@ public:
         std::cout << "E: " << buf << std::endl;
     }
 
+    virtual void debugDump(const char* msg, 
+        const uint8_t* data, uint32_t dataLen) {
+        std::cout << "D: " << msg << std::endl;
+        prettyHexDump(data, dataLen, std::cout);
+    }
+
+    virtual void infoDump(const char* msg, 
+        const uint8_t* data, uint32_t dataLen) {
+        std::cout << "I: " << msg << std::endl;
+        prettyHexDump(data, dataLen, std::cout);
+    }
 };
 
 }
