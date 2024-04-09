@@ -95,6 +95,9 @@ private:
     int32_t _rollingSum = 0;
     uint32_t _rollingSumSquared = 0;
     bool _enabled = false;
+    // The number of places we shift the rolling sum to 
+    // avoid overflow.
+    const uint32_t _scaleShift = 9;
 };
 
 }

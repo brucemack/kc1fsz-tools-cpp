@@ -62,14 +62,14 @@ bool AudioAnalyzer::play(const int16_t* frame, uint32_t frameLen) {
         int16_t sample = _history[_historyPtr];
         _rollingSum -= (int32_t)sample;
         // We accumulate a down-shifted version to avoid overflow
-        int32_t sq = ((int32_t)sample * (int32_t)sample) >> 9;
+        int32_t sq = ((int32_t)sample * (int32_t)sample) >> _scaleShift;
         _rollingSumSquared -= sq;
 
         // New sample
         sample = frame[i];
         _rollingSum += (int32_t)sample;
         // We accumulate a down-shifted version to avoid overflow
-        sq = ((int32_t)sample * (int32_t)sample) >> 9;
+        sq = ((int32_t)sample * (int32_t)sample) >> _scaleShift;
         _rollingSumSquared += sq;
 
         _history[_historyPtr] = sample;
@@ -96,7 +96,7 @@ int16_t AudioAnalyzer::getRMS() const {
 }
 
 uint32_t AudioAnalyzer::getMS() const {
-    return (_rollingSumSquared * 512) / _historySize;
+    return (_rollingSumSquared / (int32_t)_historySize) << _scaleShift;
 }
 
 int16_t AudioAnalyzer::getAvg() const {
