@@ -20,6 +20,7 @@
 #define _FixedString_h
 
 #include <cstring>
+#include <cstdint>
 
 #include "Common.h"
 
@@ -32,14 +33,30 @@ class FixedString {
 public:
 
     FixedString() { _s[0] = 0; }
-    FixedString(const FixedString& that) { strcpyLimited(_s, that._s, 64); }
-    FixedString(const char* s) { strcpyLimited(_s, s, 64); }
+    FixedString(const FixedString& that) { strcpyLimited(_s, that._s, _size); }
+    FixedString(const char* s) { strcpyLimited(_s, s, _size); }
+    bool operator== (const char* other) const { return strcmp(_s, other) == 0; }
+
     const char* c_str() const { return _s; }
     uint32_t len() const { return std::strlen(_s); }
 
+    void append(char c) { 
+        uint32_t l = len();
+        if (l < _size - 1) {
+            _s[l] = c;
+            _s[l + 1] = 0;
+        }
+    }
+
+    void toUpper() {
+        for (uint32_t i = 0; i < _size && _s[i] != 0; i++)
+            _s[i] = toupper(_s[i]);
+    }
+
 private:
 
-    char _s[64];
+    static const uint32_t _size = 64;
+    char _s[_size];
 };
 
 }

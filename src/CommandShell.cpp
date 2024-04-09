@@ -30,7 +30,8 @@ void CommandShell::process(char c) {
    if (c == '\r') {
         if (_sink) {
             _os->write('\n');
-            _sink->process(_cmdBuffer);
+            if (_cmdBuffer[0] != 0)
+                _sink->process(_cmdBuffer);
             reset();
         }
     }
@@ -46,6 +47,7 @@ void CommandShell::process(char c) {
         }
     }
     else if (c == 27) {
+        _os->write('\n');
         reset();
     }
     else if (std::isprint(c)) {
