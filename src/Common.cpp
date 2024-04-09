@@ -141,32 +141,46 @@ bool isNullTerminated(const uint8_t* source, uint32_t sourceLen) {
 }
 
 static bool timeFixed = false;
-static uint32_t fakeTime = 0;
+static timestamp fakeTime;
 
-uint32_t time_ms() {
+timestamp time_ms() {
     if (timeFixed) {
         return fakeTime;
-    } else {
+    } 
+    else {
 #ifdef PICO_BUILD
-    absolute_time_t now = get_absolute_time();
-        return to_ms_since_boot(now);
+        absolute_time_t now = get_absolute_time();
+        return timestamp(to_ms_since_boot(now));
 #else
         struct timeval tp;
         gettimeofday(&tp, NULL);
         long int ms = tp.tv_sec * 1000 + tp.tv_usec / 1000;
-        return ms;
+        return timestamp(ms);
 #endif
     }
 }
 
-void set_time_ms(uint32_t ms) {
-    fakeTime = ms;
+void set_time(timestamp t) {
     timeFixed = true;
+    fakeTime = t;
 }
 
-void advance_time_ms(uint32_t ms) {
-    fakeTime = time_ms() + ms;
+void advance_time_ms(int32_t ms) {
     timeFixed = true;
+    fakeTime.advanceMs(ms);
+}
+
+int32_t ms_between(timestamp first, timestamp second) {
+    int64_t b = second.ms - first.ms;
+    return b;
+}
+
+/**
+ * @returns Milliseconds since specified point, based on current time.
+ */
+int32_t ms_since(timestamp point) {
+    int64_t b = time_ms().ms - point.ms;
+    return b;
 }
 
 void formatIP4Address(uint32_t addr, char* dottedAddr, uint32_t dottedAddrSize) {

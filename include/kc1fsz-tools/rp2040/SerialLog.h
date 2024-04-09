@@ -40,8 +40,10 @@ public:
 
     virtual void info(const char* format, ...) {
         
+        uint32_t s = time_ms().ms % 1000000;
+
         char buf[128];
-        snprintf(buf, 10, "%08lu ", time_ms() % 1000000);
+        snprintf(buf, 10, "%08lu ", s);
 
         va_list argptr;
         va_start(argptr, format);
@@ -54,8 +56,10 @@ public:
 
     virtual void error(const char* format, ...) {
 
+        uint32_t s = time_ms().ms % 1000000;
+
         char buf[128];
-        snprintf(buf, 10, "%08lu ", time_ms() % 1000000);
+        snprintf(buf, 10, "%08lu ", s);
 
         va_list argptr;
         va_start(argptr, format);
@@ -66,7 +70,7 @@ public:
             std::cout << "E: " << buf << std::endl;
     }
 
-    virtual bool run() {
+    virtual void run() {
         // Burst controls how many characters we can write without yielding
         uint32_t burst = 8;
         while (burst > 0 && uart_is_writable(_uart) && _sendCount < _writeCount) {
@@ -75,7 +79,6 @@ public:
             _sendCount++;
             burst--;
         }
-        return true;
     }
 
 private:

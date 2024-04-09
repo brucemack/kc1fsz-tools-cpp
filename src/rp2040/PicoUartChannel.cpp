@@ -171,7 +171,7 @@ uint32_t PicoUartChannel::write(const uint8_t* buf, uint32_t bufLen) {
     return i;
 }
 
-bool PicoUartChannel::run() {
+void PicoUartChannel::run() {
 
     // Santity check - the sending should never get ahead
     if (_txBufferWriteCount < _txBufferSentCount) {
@@ -179,13 +179,11 @@ bool PicoUartChannel::run() {
     }
 
     // Send as much as possible
-    uint32_t moveSize = 0;
     while (_txBufferWriteCount > _txBufferSentCount && 
         uart_is_writable(_uart)) {
         // TODO: Switch to mask
         uint32_t slot = _txBufferSentCount % _txBufferSize;
         uart_putc(_uart, (char)_txBuffer[slot]);
-        moveSize++;
         _txBufferSentCount++;
         // EDGE CASE: If the counter just wrapped to zero then 
         // shift both the write counter and the send counter to 
@@ -196,8 +194,6 @@ bool PicoUartChannel::run() {
             _txBufferSentCount += (_txBufferSize * 2);
         }
     }
-
-    return moveSize > 0;
 }
 
 // TODO: __not_in_flash_func()

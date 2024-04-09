@@ -47,10 +47,8 @@ public:
     /**
      * This should be called continuously from the event loop, or at
      * least fast enough to keep up with the frame rate.
-     * 
-     * @returns true if anything happened while polling
      */
-    virtual bool run() = 0;
+    virtual void run() = 0;
 
     /**
      * Generates a CW tone

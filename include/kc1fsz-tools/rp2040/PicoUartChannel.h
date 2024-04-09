@@ -99,7 +99,6 @@ public:
 
     virtual uint32_t bytesWritable() const;
 
-
     /**
      * @return The number of bytes that were actually read.  <= bufCapacity
     */

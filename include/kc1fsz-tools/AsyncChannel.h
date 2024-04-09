@@ -36,10 +36,8 @@ public:
     /**
      * Tells the channel to make forward progress, whatever that 
      * means in its context.
-     * 
-     * @return true if anything happened during the poll cycle.
     */
-    virtual bool run() = 0;
+    virtual void run() = 0;
 
     /**
      * @return true if read() can be called productively.

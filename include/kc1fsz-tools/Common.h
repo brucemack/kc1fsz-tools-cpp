@@ -50,21 +50,6 @@ bool isNullTerminated(const uint8_t* source, uint32_t sourceLen);
 void panic(const char* msg);
 
 /**
- * @returns The current time in milliseconds-since-epoch
-*/
-uint32_t time_ms();
-
-/**
- * Used for testing purposes - sets time artificially.
- */
-void set_time_ms(uint32_t ms);
-
-/**
- * Used for testing purposes - moves time forward artificially.
- */
-void advance_time_ms(uint32_t ms);
-
-/**
  * Puts the address into a string in decimal-dotted format.
  *
  * @param addr IP4 address expressed as a 32-bit integer.  The
@@ -80,6 +65,41 @@ void formatIP4Address(uint32_t addr, char* dottedAddr, uint32_t dottedAddrSize);
  *   Otherwise, go to the null.
  */
 uint32_t parseIP4Address(const char* dottedAddr, uint32_t len = 0);
+
+// ----- Time Related --------------------------------------------------------
+
+struct timestamp {
+
+    timestamp() : ms(0) { }   
+    timestamp(int64_t a) : ms(a) { }   
+    void advanceMs(int32_t a) { ms += a; }
+    void reset() { ms = 0; }
+    bool isZero() const { return ms == 0; }
+
+    int64_t ms = 0;
+};
+
+/**
+ * @returns The current time in milliseconds-since-epoch
+*/
+timestamp time_ms();
+
+/**
+ * Used for testing purposes - sets time artificially.  
+ */
+void set_time(timestamp t);
+
+/**
+ * Used for testing purposes - moves time forward artificially.
+ */
+void advance_time_ms(int32_t ms);
+
+int32_t ms_between(timestamp first, timestamp second);
+
+/**
+ * @returns Milliseconds since specified point, based on current time.
+ */
+int32_t ms_since(timestamp point);
 
 }
 

@@ -36,17 +36,6 @@ message("Desktop build!")
 add_compile_options(-fstack-protector-all -Wall -Wpedantic -g)
 endif()
 
-# ------ common-test-1 -------------------------------------------------------
-# Target: Host
-
-add_executable(common-test-1
-  tests/common-test-1.cpp
-  src/Common.cpp
-) 
-
-target_include_directories(common-test-1 PRIVATE src)
-target_include_directories(common-test-1 PRIVATE include)
-
 # ------ audio-test-1 ---------------------------------------------------------
 # Target: Host
 

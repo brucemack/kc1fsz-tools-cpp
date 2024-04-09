@@ -29,7 +29,7 @@ public:
      *
      * @returns true if something happens, false if not
      */
-    virtual bool run() = 0;
+    virtual void run() = 0;
 };
 
 }
