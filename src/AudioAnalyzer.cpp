@@ -41,21 +41,12 @@ void AudioAnalyzer::reset() {
     _rollingSumSquared = 0;
 }
 
-bool AudioAnalyzer::sanityCheck() const {
-    int32_t rs = 0;
-    uint32_t rss = 0;
-    for (uint32_t i = 0; i < _historySize; i++) {
-        rs += (int32_t)_history[i];
-        int32_t sq = ((int32_t)_history[i] * (int32_t)_history[i]) >> 9;
-        rss += sq;
-    }
-    return _rollingSum == rs && _rollingSumSquared == rss;
-}
-
 bool AudioAnalyzer::play(const int16_t* frame, uint32_t frameLen) {  
+
     if (!_enabled) {
         return false;
     }
+
     for (uint32_t i = 0; i < frameLen; i++) {
 
         // What we are about to overrwrite
@@ -67,6 +58,31 @@ bool AudioAnalyzer::play(const int16_t* frame, uint32_t frameLen) {
 
         // New sample
         sample = frame[i];
+
+        // Put the sample through a DC notch filter to remove any bias 
+        // that results from the ADC not being perfectly centered at zero.
+        // 
+        //           1 - z^-1
+        // H(z) = ---------------
+        //           1 - Rz^-1
+        // 
+        // Where R is from 0.9 to 1.0
+        //
+        // y[n] = x[n] - x[n-1] + R * y[n-1]
+        //
+        int32_t t3 = (_dcBlockR * (int32_t)_yn_1) >> 16;
+        int32_t s = (int32_t)sample - (int32_t)_xn_1 + t3;
+        // Saturate
+        if (s > 32767) {
+            s = 32767;
+        } else if (s < -32768) {
+            s = -32768;
+        }
+        _xn_1 = sample;
+        sample = (int16_t)s;
+        _yn_1 = sample;
+
+        // Now accumulate        
         _rollingSum += (int32_t)sample;
         // We accumulate a down-shifted version to avoid overflow
         sq = ((int32_t)sample * (int32_t)sample) >> _scaleShift;
@@ -79,6 +95,7 @@ bool AudioAnalyzer::play(const int16_t* frame, uint32_t frameLen) {
             _historyPtr = 0;
         }
     }
+
     return true;
 }
 

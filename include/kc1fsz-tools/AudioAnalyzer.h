@@ -77,8 +77,6 @@ public:
 
     void dump(std::ostream& s) const;
 
-    bool sanityCheck() const;
-
     // ----- From AudioProcessor ----------------------------------------------
 
     /**
@@ -98,6 +96,11 @@ private:
     // The number of places we shift the rolling sum to 
     // avoid overflow.
     const uint32_t _scaleShift = 9;
+
+    // Used to implement the DC notch
+    int16_t _xn_1 = 0, _yn_1 = 0;
+    // Fixed point coefficient
+    const int32_t _dcBlockR = (int32_t)(0.95 * 32767.0);
 };
 
 }
