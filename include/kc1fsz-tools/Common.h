@@ -101,6 +101,15 @@ int32_t ms_between(timestamp first, timestamp second);
  */
 int32_t ms_since(timestamp point);
 
+/**
+ * @returns Seconds since the Epoch
+ */
+uint32_t get_epoch_time();
+
+void set_epoch_time(uint32_t t);
+
+void format_iso_time(char* buf, uint32_t bufLen);
+
 }
 
 #endif

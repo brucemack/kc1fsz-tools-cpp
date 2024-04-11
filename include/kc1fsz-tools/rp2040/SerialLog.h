@@ -40,14 +40,13 @@ public:
 
     virtual void info(const char* format, ...) {
         
-        uint32_t s = time_ms().ms % 1000000;
-
         char buf[128];
-        snprintf(buf, 10, "%08lu ", s);
+        format_iso_time(buf, 128);
+        buf[23] = ' ';
 
         va_list argptr;
         va_start(argptr, format);
-        vsnprintf(buf + 9, 128 - 9, format, argptr);
+        vsnprintf(buf + 24, 128 - 24, format, argptr);
         va_end(argptr);
         _write(buf);
         if (_stdout)
@@ -56,14 +55,13 @@ public:
 
     virtual void error(const char* format, ...) {
 
-        uint32_t s = time_ms().ms % 1000000;
-
         char buf[128];
-        snprintf(buf, 10, "%08lu ", s);
+        format_iso_time(buf, 128);
+        buf[23] = ' ';
 
         va_list argptr;
         va_start(argptr, format);
-        vsnprintf(buf + 9, 128 - 9, format, argptr);
+        vsnprintf(buf + 24, 128 - 24, format, argptr);
         va_end(argptr);
         _write(buf);
         if (_stdout)

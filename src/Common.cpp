@@ -16,6 +16,7 @@
  *
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
+#include <ctime>
 #include <cstring>
 #include <cctype>
 #include <cassert>
@@ -181,6 +182,30 @@ int32_t ms_between(timestamp first, timestamp second) {
 int32_t ms_since(timestamp point) {
     int64_t b = time_ms().ms - point.ms;
     return b;
+}
+
+// TODO: 
+static uint32_t lastMsSinceBoot = 0;
+static uint32_t lastEpochTime = 0;
+
+uint32_t get_epoch_time() {
+    uint32_t diff = to_ms_since_boot(get_absolute_time()) - lastMsSinceBoot;
+    return lastEpochTime + (uint32_t)(diff / 1000);
+}
+
+void set_epoch_time(uint32_t t) {
+    lastEpochTime = t;
+    lastMsSinceBoot = to_ms_since_boot(get_absolute_time());
+}
+
+void format_iso_time(char* buf, uint32_t bufLen) {
+    time_t ut2 = get_epoch_time();
+    int ms = ut2 % 1000;
+    struct tm* tm_info = localtime(&ut2);
+    strftime(buf, bufLen, "%Y-%m-%dT%H:%M:%S.000", tm_info);
+    // If there's room, overwrite the MS
+    if (bufLen >= 24)
+        sprintf(buf + 19, ".%03d", ms);
 }
 
 void formatIP4Address(uint32_t addr, char* dottedAddr, uint32_t dottedAddrSize) {
