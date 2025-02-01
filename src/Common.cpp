@@ -188,6 +188,7 @@ int32_t ms_since(timestamp point) {
 static uint32_t lastMsSinceBoot = 0;
 static uint32_t lastEpochTime = 0;
 
+#ifdef PICO_BUILD
 uint32_t get_epoch_time() {
     uint32_t diff = to_ms_since_boot(get_absolute_time()) - lastMsSinceBoot;
     return lastEpochTime + (uint32_t)(diff / 1000);
@@ -197,6 +198,7 @@ void set_epoch_time(uint32_t t) {
     lastEpochTime = t;
     lastMsSinceBoot = to_ms_since_boot(get_absolute_time());
 }
+#endif
 
 void format_iso_time(char* buf, uint32_t bufLen) {
     time_t ut2 = get_epoch_time();
@@ -214,7 +216,8 @@ void formatIP4Address(uint32_t addr, char* dottedAddr, uint32_t dottedAddrSize) 
     uint32_t b = (addr & 0x00ff0000) >> 16;
     uint32_t c = (addr & 0x0000ff00) >> 8;
     uint32_t d = (addr & 0x000000ff);
-    snprintf(dottedAddr, dottedAddrSize, "%lu.%lu.%lu.%lu", a, b, c, d);
+    // BRM 2025-02-01 changed from %lu to resolve warning
+    snprintf(dottedAddr, dottedAddrSize, "%u.%u.%u.%u", a, b, c, d);
 }
 
 uint32_t parseIP4Address(const char* dottedAddr, uint32_t len) {
