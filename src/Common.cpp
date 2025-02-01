@@ -39,6 +39,8 @@ namespace kc1fsz {
 //    std::cerr << "PANIC: " << msg << std::endl;
 //    assert(false);
 //}
+void panic(const char* msg) {
+}
 #else 
 void panic(const char* msg) {
     std::cerr << "PANIC: " << msg << std::endl;
@@ -197,6 +199,10 @@ uint32_t get_epoch_time() {
 void set_epoch_time(uint32_t t) {
     lastEpochTime = t;
     lastMsSinceBoot = to_ms_since_boot(get_absolute_time());
+}
+#else
+uint32_t get_epoch_time() {
+    return 0;
 }
 #endif
 
