@@ -29,7 +29,7 @@ class DTMFDetector : public AudioProcessor {
 public:
 
     DTMFDetector(int16_t* historyArea, uint32_t historyAreaSize, 
-        uint32_t sampleRate);
+        uint32_t sampleRateHz);
 
     void reset();
 
