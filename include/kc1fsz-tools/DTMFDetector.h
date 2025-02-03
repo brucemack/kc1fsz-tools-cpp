@@ -15,6 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
+ * 
+ * For more information about the DTMF receive standard please see 
+ * ETSI ES 201 235-3 V1.1.1 (2002-03) section 4.2.2.  
+ * 
+ * https://www.etsi.org/deliver/etsi_es/201200_201299/20123503/01.02.01_50/es_20123503v010201m.pdf
+ * 
  */
 #ifndef _DTMFDetector_h
 #define _DTMFDetector_h
@@ -28,8 +34,10 @@ namespace kc1fsz {
 class DTMFDetector : public AudioProcessor {
 public:
 
-    DTMFDetector(int16_t* historyArea, uint32_t historyAreaSize, 
-        uint32_t sampleRateHz);
+    /**
+     * NOTE: At the moment we only support a sample rate of 8,000 Hz.
+     */
+    DTMFDetector(uint32_t sampleRateHz);
 
     void reset();
 
@@ -53,17 +61,24 @@ private:
 
     void _processFrame(const int16_t* frame, uint32_t frameLen);
 
-    static char _detect(int16_t* samples, uint32_t N);
+    void _processShortBlock(const int16_t* frame, uint32_t frameLen);
 
-    int16_t* _history;
-    uint32_t _historySize;
-    uint32_t _sampleRate;
-    uint32_t _historyPtr;
-    // Numer of samples in the DFT block
+    // Runs the DFT detectiopn on a small block of signal and looks for 
+    // a "valid signal condition" (VSC).  NOTE: This is not the same as
+    // a "detected signal condition" (DSC).
+    static char _detectVSC(int16_t* samples, uint32_t N);
+
+    const uint32_t _sampleRate;
+    // Numer of samples in the DFT block (17ms of data)
     static const uint32_t N = 136;    
 
-    // Short history
-    char _symbol_1, _symbol_2, _symbol_3;
+    // VSC history
+    static const uint32_t _vscHistSize = 8;
+    char _vscHist[_vscHistSize];
+    // Indicates whether we are currently in the middle of a valid
+    // detection.
+    bool _inDSC = false;
+    char _detectedSymbol = 0;
     // The good results
     static const uint32_t _resultSize = 16;
     char _result[_resultSize];

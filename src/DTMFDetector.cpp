@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <cassert>
 
 #include "kc1fsz-tools/DTMFDetector.h"
 #include "kc1fsz-tools/Common.h"
@@ -83,21 +84,16 @@ static char symbolGrid[4 * 4] = {
     '*', '0', '#', 'D'
 };
 
-DTMFDetector::DTMFDetector(int16_t* historyArea, uint32_t historyAreaSize, uint32_t sampleRate) 
-:   _history(historyArea),
-    _historySize(historyAreaSize),
-    _sampleRate(sampleRate) {
+DTMFDetector::DTMFDetector(uint32_t sampleRate) 
+:   _sampleRate(sampleRate) {
     reset();
+    assert(sampleRate == 8000);
 }
 
 void DTMFDetector::reset() {
-    for (uint32_t i = 0; i < _historySize; i++) {
-        _history[i] = 0;
+    for (uint32_t i = 0; i < _vscHistSize; i++) {
+        _vscHist[i] = 0;
     }
-    _historyPtr = 0;
-    _symbol_1 = 0;
-    _symbol_2 = 0;
-    _symbol_3 = 0;
     _resultLen = 0;
 }
 
@@ -133,35 +129,35 @@ char DTMFDetector::getResult() {
     }
 }
 
-void DTMFDetector::_processFrame(const int16_t* frame, uint32_t frameLen) {  
+void DTMFDetector::_processFrame(const int16_t* frame, uint32_t frameLen) { 
+    // TOOD: REMOVE HARDCODING
+    assert(frameLen == 160);
+    // Divide the frame into two 10ms blocks
+    _processShortBlock(frame, 80);
+    _processShortBlock(&(frame[80]), 80);
+}
 
-    for (uint32_t i = 0; i < frameLen; i++) {
-        _history[_historyPtr] = frame[i];
-        // Manage wrap-around
-        _historyPtr++;
-        if (_historyPtr == _historySize) {
-            _historyPtr = 0;
-        }
-    }
+void DTMFDetector::_processShortBlock(const int16_t* block, uint32_t blockLen) {  
+    // TOOD: REMOVE HARDCODING
+    assert(blockLen == 80);
+    assert(blockLen < N);
 
-    // Process the most recent N samples each time
+    // Put the block into the center of the window with zero padding on both sides
     int16_t samples[N];
-    uint32_t ptr = _historyPtr;
     int16_t maxVal = 0;
+    unsigned int zeroPadSize = (N - blockLen) / 2;
 
-    for (uint32_t i = 0; i < N; i++) {
-        // Look for reverse wrap
-        if (ptr == 0) {
-            ptr = _historySize;
-        }
-        ptr--;
-        int16_t sample = _history[ptr];
-        samples[i] = sample;
-        // Needed for normalization
-        int16_t absSample = s_abs(sample);
-        if (absSample > maxVal) {
+    for (unsigned int i = 0; i < N; i++) {
+        if (i < zeroPadSize) 
+            samples[i] = 0;
+        else if (i < zeroPadSize + blockLen)
+            samples[i] = block[i - zeroPadSize];
+        else
+            samples[i] = 0;
+        // Max amplitude needed for normalization
+        int16_t absSample = s_abs(samples[i]);
+        if (absSample > maxVal)
             maxVal = absSample;
-        }
     }
     
     // Apply the normalization
@@ -169,19 +165,42 @@ void DTMFDetector::_processFrame(const int16_t* frame, uint32_t frameLen) {
         samples[i] = div2(samples[i], maxVal);
     }
 
-    char symbol = _detect(samples, N);
-    
-    // Check to see if we've just formed a valid symbol for 40ms + 40ms of noise
-    if (symbol == 0 && _symbol_1 == 0 && _symbol_2 != 0 && _symbol_3 == _symbol_2) {
-        if (_resultLen < _resultSize) {
-            _result[_resultLen++] = _symbol_2;
+    char vscSymbol = _detectVSC(samples, N);
+    //cout << "VSC Symbol " << (int)vscSymbol << " " << vscSymbol << endl;
+
+    // The VSC->DSC transition requires some history.
+    // First "push the stack" to make room for the new symbol
+    for (unsigned int i = 1; i < _vscHistSize; i++)
+        _vscHist[_vscHistSize - i] = _vscHist[_vscHistSize - i - 1];
+    // Record the latest symbol
+    _vscHist[0] = vscSymbol;
+
+    // Look at the recent VSC history and decide on the detection status.
+    // (See ETSI ES 201 235-3 V1.1.1 (2002-03) section 4.2.2)
+
+    // A valid DSC recognition requires a consistent detection over 40ms 
+    if (!_inDSC) {
+        if (_vscHist[0] != 0 &&
+            _vscHist[0] == _vscHist[1] &&
+            _vscHist[0] == _vscHist[2] &&
+            _vscHist[0] == _vscHist[3]) {
+            _inDSC = true;
+            _detectedSymbol = _vscHist[0];
+            // Record the symbol on transition
+            if (_resultLen < _resultSize) {
+                _result[_resultLen++] = _detectedSymbol;
+            }
         }
     }
-
-    // Keep the history going
-    _symbol_3 = _symbol_2;
-    _symbol_2 = _symbol_1;
-    _symbol_1 = symbol;
+    // A valid DSC cesation requires an interruption of at least 40ms
+    else {
+        if (_vscHist[0] != _detectedSymbol &&
+            _vscHist[1] != _detectedSymbol &&
+            _vscHist[2] != _detectedSymbol &&
+            _vscHist[3] != _detectedSymbol) {
+            _inDSC = false;
+        }
+    }
 }
 
 /**
@@ -231,12 +250,20 @@ static int16_t computePower(int16_t* samples, uint32_t N, int32_t coeff) {
     return (int16_t)r;
 }
 
-char DTMFDetector::_detect(int16_t* samples, uint32_t N) {
+char DTMFDetector::_detectVSC(int16_t* samples, uint32_t N) {
 
     // Compute the power on the fundamental frequencies
     int16_t power[8];
-    for (int k = 0; k < 8; k++)
+    bool nonZeroFound = false;
+    for (int k = 0; k < 8; k++) {
         power[k] = computePower(samples, N, coeff[k]);
+        if (power[k] > 0)
+            nonZeroFound = true;
+    }
+
+    // This could happen in the case where a DC signal is sent in
+    if (!nonZeroFound)
+        return 0;
 
     // Find the maximum of the combined powers
     int32_t maxCombPower = 0;
@@ -279,7 +306,7 @@ char DTMFDetector::_detect(int16_t* samples, uint32_t N) {
     // group) power. We are shifting the numerator by 4 to allow more accurate 
     // comparison in fixed point.
     if ((4 * maxColPower) / maxRowPower > 6) {
-        //cout << "Twist failed: col too high" << endl;
+        cout << "Twist failed: col too high" << endl;
         return 0;
     }
     
@@ -290,7 +317,7 @@ char DTMFDetector::_detect(int16_t* samples, uint32_t N) {
     // THE FT-65
     //if ((4 * maxRowPower) / maxColPower > 10) {
     if ((4 * maxRowPower) / maxColPower > 11) {
-        //cout << "Twist failed: row too high " << maxRowPower << " " << maxColPower << endl;
+        cout << "Twist failed: row too high " << maxRowPower << " " << maxColPower << endl;
         return 0;
     }
 
@@ -300,11 +327,11 @@ char DTMFDetector::_detect(int16_t* samples, uint32_t N) {
 
     // Make sure the harmonics are 20dB down from the fundamentals
     if (maxRowHarmonicPower != 0 && maxRowPower / maxRowHarmonicPower < 10) {
-        //cout << "Failed on harmonic power test row" << endl;
+        cout << "Failed on harmonic power test row" << endl;
         return 0;
     }
     if (maxColHarmonicPower != 0 && maxColPower / maxColHarmonicPower < 10) {
-        //cout << "Failed on harmonic power test col " << maxColPower << " " << maxColHarmonicPower << endl;
+        cout << "Failed on harmonic power test col " << maxColPower << " " << maxColHarmonicPower << endl;
         return 0;
     }
 
