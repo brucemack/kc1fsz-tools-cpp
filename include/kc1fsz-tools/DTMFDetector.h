@@ -41,12 +41,20 @@ public:
 
     void reset();
 
-    bool resultAvailable() const;
+    /**
+     * @returns true if there is a DTMF symbol available to be
+     * dequeued.
+     */
+    bool isAvailable() const;
 
     /**
-     * @returns The latest symbol decoded.
-    */
-    char getResult();
+     * @returns Pulls the next symbol from the decode queue and
+     * returns it.  Use resultsAvailable() to determine if there 
+     * is anything waiting to be pulled.
+     * 
+     * Symbols are returned in the order that they are detected.
+     */
+    char pullResult();
 
     // ----- From AudioProcessor ----------------------------------------------
 

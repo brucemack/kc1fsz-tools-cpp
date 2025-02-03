@@ -111,13 +111,14 @@ bool DTMFDetector::play(const int16_t* frame, uint32_t frameLen) {
     return true;
 }
 
-bool DTMFDetector::resultAvailable() const {
+bool DTMFDetector::isAvailable() const {
     return _resultLen > 0;
 }
 
-char DTMFDetector::getResult() {
+char DTMFDetector::pullResult() {
     if (_resultLen > 0) {
         char r = _result[0];
+        // Pop the queue
         for (uint32_t i = 0; i < _resultLen - 1; i++) {
             _result[i] = _result[i + 1];
         }
@@ -306,7 +307,7 @@ char DTMFDetector::_detectVSC(int16_t* samples, uint32_t N) {
     // group) power. We are shifting the numerator by 4 to allow more accurate 
     // comparison in fixed point.
     if ((4 * maxColPower) / maxRowPower > 6) {
-        cout << "Twist failed: col too high" << endl;
+        //cout << "Twist failed: col too high" << endl;
         return 0;
     }
     
@@ -317,7 +318,7 @@ char DTMFDetector::_detectVSC(int16_t* samples, uint32_t N) {
     // THE FT-65
     //if ((4 * maxRowPower) / maxColPower > 10) {
     if ((4 * maxRowPower) / maxColPower > 11) {
-        cout << "Twist failed: row too high " << maxRowPower << " " << maxColPower << endl;
+        //cout << "Twist failed: row too high " << maxRowPower << " " << maxColPower << endl;
         return 0;
     }
 
@@ -327,11 +328,11 @@ char DTMFDetector::_detectVSC(int16_t* samples, uint32_t N) {
 
     // Make sure the harmonics are 20dB down from the fundamentals
     if (maxRowHarmonicPower != 0 && maxRowPower / maxRowHarmonicPower < 10) {
-        cout << "Failed on harmonic power test row" << endl;
+        //cout << "Failed on harmonic power test row" << endl;
         return 0;
     }
     if (maxColHarmonicPower != 0 && maxColPower / maxColHarmonicPower < 10) {
-        cout << "Failed on harmonic power test col " << maxColPower << " " << maxColHarmonicPower << endl;
+        //cout << "Failed on harmonic power test col " << maxColPower << " " << maxColHarmonicPower << endl;
         return 0;
     }
 
