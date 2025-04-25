@@ -29,7 +29,9 @@ public:
     virtual void setIntervalUs(uint32_t us) = 0;
 
     /**
-     * Starts the interval again
+     * Starts the interval again. This is used for 
+     * synchronization - it doesn't need to be called
+     * explicitly on each interval.
      */
     virtual void reset() { }
 
