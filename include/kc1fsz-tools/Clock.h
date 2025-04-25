@@ -19,10 +19,18 @@
 
 #include <stdint.h>
 
+namespace kc1fsz {
+
 class Clock {
 public:
 
+    /**
+     * @returns The canonical milliseconds since the epoch.
+     * TODO: Address wrap-around problems.
+     */
     virtual uint32_t time() const = 0;
 };
+
+}
 
 #endif

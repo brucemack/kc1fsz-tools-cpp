@@ -1,8 +1,5 @@
 /* 
- * LoRa Birdhouse Mesh Network Project
- * Wellesley Amateur Radio Society
- * 
- * Copyright (C) 2022 Bruce MacKinnon
+ * Copyright (C) 2025 Bruce MacKinnon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,8 +21,9 @@
 #include <Arduino.h>
 #endif
 
-
 #include "Clock.h"
+
+namespace kc1fsz {
 
 class ClockImpl : public Clock {
 public:
@@ -34,5 +32,7 @@ public:
         return millis();
     };
 };
+
+}
 
 #endif
