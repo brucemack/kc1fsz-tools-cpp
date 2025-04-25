@@ -79,6 +79,10 @@ public:
         prettyHexDump(data, dataLen, std::cout);
     }
 
+    virtual void println(const char* msg) {
+        std::cout << msg << std::endl;
+    }
+
 protected:
 
     void _fmtTime(char* buf, uint32_t len) {
