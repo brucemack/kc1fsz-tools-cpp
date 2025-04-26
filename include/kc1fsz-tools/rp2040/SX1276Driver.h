@@ -46,8 +46,11 @@ public:
      */
     void set_frequency(float freq_mhz);
 
-    // Puts something on the send queue
-    void send(const uint8_t* msg, uint32_t msg_len);
+    /**
+     * Puts something on the send queue
+     * @returns true if the message was queued, false if not (because of capacity issues)
+     */ 
+    bool send(const uint8_t* msg, uint32_t msg_len);
 
     /**
      * @returns true if something was availble to be received.

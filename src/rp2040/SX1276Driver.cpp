@@ -52,8 +52,8 @@ SX1276Driver::SX1276Driver(Log& log, Clock& clock, int reset_pin, int cs_pin, sp
     _spi(spi) {
 }
 
-void SX1276Driver::send(const uint8_t* msg, uint32_t msg_len) {
-    _txBuffer.push(0, msg, msg_len);
+bool SX1276Driver::send(const uint8_t* msg, uint32_t msg_len) {
+    return _txBuffer.push(0, msg, msg_len);
 }
 
 bool SX1276Driver::popReceiveIfNotEmpty(void* oobBuf, void* buf, unsigned int* len) {
