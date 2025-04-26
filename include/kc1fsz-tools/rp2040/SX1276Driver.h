@@ -52,6 +52,8 @@ public:
      */ 
     bool send(const uint8_t* msg, uint32_t msg_len);
 
+    bool isSendQueueEmpty() const { return _txBuffer.isEmpty(); }
+
     /**
      * @returns true if something was availble to be received.
      */
