@@ -567,4 +567,8 @@ void SWDDriver::_delayPeriod() const {
     sleep_us(1);
 }
 
+void SWDDriver::delayMs(unsigned int ms) {
+    sleep_ms(ms);
+}
+
 }

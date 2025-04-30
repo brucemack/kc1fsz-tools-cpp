@@ -1,4 +1,7 @@
 #include <cstdio>
+#include <cstring>
+#include <cstdlib>
+#include <cassert>
 
 #include "kc1fsz-tools/SWDUtils.h"
 
@@ -191,7 +194,7 @@ int reset_into_debug(SWDDriver& swd) {
 
     // ???
     // TODO: Figure out what to poll for to avoid this race condition
-    sleep_ms(10);
+    swd.delayMs(10);
 
     return 0;
 }

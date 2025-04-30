@@ -43,6 +43,8 @@ public:
     void writeSelectionAlert();
     void writeActivationCode();
 
+    void delayMs(unsigned int ms);
+
     /**
      * @param addr 4-bit address, but [1:0] are always zero
      * @param ignoreAck When true, the slave-generated acknowledgement is ignored. This
