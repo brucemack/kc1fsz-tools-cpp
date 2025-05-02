@@ -426,6 +426,8 @@ void SX1276Driver::write_message(uint8_t* data, uint8_t len) {
 
 int SX1276Driver::reset_radio() {
 
+    _radioInitGood = false;
+
     // Hard reset
     gpio_set_dir(_resetPin, GPIO_OUT);
     gpio_put(_resetPin, 0);
@@ -511,7 +513,7 @@ int SX1276Driver::reset_radio() {
 
     start_Idle();
 
-    //_log.info("Radio initialized");
+    _radioInitGood = true;
 
     return 0;  
 }

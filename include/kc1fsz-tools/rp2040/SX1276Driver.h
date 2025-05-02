@@ -34,6 +34,8 @@ public:
 
     SX1276Driver(Log& log, Clock& clock, int reset_pin, int cs_pin, spi_inst_t* spi);
 
+    bool isRadioInitGood() const { return _radioInitGood; }
+
     // Called by interrupt pin
     void event_int();
     // This should be called every 50-100ms.
@@ -128,6 +130,8 @@ private:
     // The states of the state machine
     enum State { RESTART_STATE, IDLE_STATE, RX_STATE, TX_STATE, CAD_STATE };
     volatile State _state = State::RESTART_STATE;
+
+    bool _radioInitGood = false;
 
     // This is volatile because it is set inside of the ISR context
     volatile bool _isrHit = false;
