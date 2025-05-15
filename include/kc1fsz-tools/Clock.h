@@ -29,6 +29,11 @@ public:
      * TODO: Address wrap-around problems.
      */
     virtual uint32_t time() const = 0;
+
+    /**
+     * @returns true when the current time is past the reference time
+     */
+    bool isPast(uint32_t ref) const { return time() > ref; }
 };
 
 }

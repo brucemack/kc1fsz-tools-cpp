@@ -24,14 +24,20 @@
 
 #ifndef PICO_BUILD
 #include <time.h>       /* time_t, struct tm, time, localtime, strftime */
+#else 
+#include "pico/time.h"
 #endif
 
 #include "kc1fsz-tools/Common.h"
+#include "kc1fsz-tools/Clock.h"
 
 namespace kc1fsz {
 
 class Log {
 public:
+
+    Log() { }
+    Log(Clock* clock) { _clock = clock; }
 
     virtual void info(const char* format, ...) {
         va_list argptr;
@@ -87,7 +93,15 @@ protected:
 
     void _fmtTime(char* buf, uint32_t len) {
 #ifdef PICO_BUILD
-        buf[0] = 0;
+        if (_clock) {
+            uint32_t s = _clock->time() / 1000;
+            sprintf(buf, "%06u:%02u", s / 60, s % 60);
+        } else {
+            absolute_time_t now = get_absolute_time();
+            uint64_t us = to_us_since_boot(now);
+            uint32_t s = us / 1000000;
+            sprintf(buf, "%06u:%02u", s / 60, s % 60);
+        }
 #else
         time_t rawtime;
         time (&rawtime);
@@ -95,6 +109,10 @@ protected:
         strftime (buf, len, "%T", timeinfo);
 #endif
     }
+
+private:
+
+    Clock* _clock = 0;
 };
 }
 
