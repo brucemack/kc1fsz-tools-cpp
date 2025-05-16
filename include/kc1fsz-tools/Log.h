@@ -94,13 +94,15 @@ protected:
     void _fmtTime(char* buf, uint32_t len) {
 #ifdef PICO_BUILD
         if (_clock) {
-            uint32_t s = _clock->time() / 1000;
-            sprintf(buf, "%06u:%02u", s / 60, s % 60);
+            uint32_t ms = _clock->time();
+            uint32_t s = ms / 1000;
+            sprintf(buf, "%06u:%02u.%03u", s / 60, s % 60, ms % 1000);
         } else {
             absolute_time_t now = get_absolute_time();
             uint64_t us = to_us_since_boot(now);
-            uint32_t s = us / 1000000;
-            sprintf(buf, "%06u:%02u", s / 60, s % 60);
+            uint32_t ms = us / 1000;
+            uint32_t s = ms / 1000;
+            sprintf(buf, "%06u:%02u.%03u", s / 60, s % 60, ms % 1000);
         }
 #else
         time_t rawtime;
