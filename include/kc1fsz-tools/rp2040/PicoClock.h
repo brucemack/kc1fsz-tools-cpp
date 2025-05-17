@@ -29,14 +29,20 @@ public:
 
     uint32_t time() const {
         absolute_time_t now = get_absolute_time();
-        return to_ms_since_boot(now) * _scale;
+        return (to_ms_since_boot(now) - _offset) * _scale;
     };
 
     void setScale(uint32_t s) { _scale = s; }
 
+    void reset() {
+        absolute_time_t now = get_absolute_time();
+        _offset = to_ms_since_boot(now);
+    }
+
 private:
 
     uint32_t _scale = 1;
+    uint32_t _offset = 0;
 };
 
 }
