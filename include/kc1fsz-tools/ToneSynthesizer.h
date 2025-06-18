@@ -32,6 +32,7 @@ public:
     void setFreq(float freqHz);
     void setEnabled(bool on);
     float getSample();
+    bool isActive() { return _state != State::SILENT; }
 
 protected:
 
