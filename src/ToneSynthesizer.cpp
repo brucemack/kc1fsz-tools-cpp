@@ -1,7 +1,10 @@
+#include <cstdio>
 #include <cmath>
 #include "kc1fsz-tools/ToneSynthesizer.h"
 
 namespace kc1fsz {
+
+static const float PI2 = 2.0 * 3.14159265359;
 
 ToneSynthesizer::ToneSynthesizer(float fsHz, float envelopeMs) 
 :   _fsHz(fsHz),
@@ -9,7 +12,7 @@ ToneSynthesizer::ToneSynthesizer(float fsHz, float envelopeMs)
 }
 
 void ToneSynthesizer::setFreq(float freqHz) {
-    _omega = 2.0 * 3.14159265359 * freqHz / _fsHz;
+    _omega = PI2 * freqHz / _fsHz;
 }
 
 void ToneSynthesizer::setEnabled(bool on) {
@@ -35,6 +38,9 @@ float ToneSynthesizer::getSample() {
     else {
         float a = _sin(_phi);
         _phi += _omega;
+        // This is needed to avoid strange wrapping issues that 
+        // occur with the phase.
+        _phi = fmod(_phi, PI2);
         float scale = 1.0;
         if (_state == State::RAMP_UP) {
             scale = (float)_envPtr / (float)_envCount;
