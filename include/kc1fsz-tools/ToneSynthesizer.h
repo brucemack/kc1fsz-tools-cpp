@@ -25,14 +25,16 @@ class ToneSynthesizer {
 public:
 
     /**
-     * @param envelopeMs The lenght of the shaping envelope in milliseconds.
+     * @param envelopeMs The length of the shaping envelope in milliseconds.
      */
     ToneSynthesizer(float fsHz, float envelopeMs);
 
-    void setFreq(float freqHz);
     void setEnabled(bool on);
     float getSample();
     bool isActive() { return _state != State::SILENT; }
+
+    void setFreq(float freqHz);
+    void setPcm(const short* pcm, unsigned int pcmLength, unsigned int rateHz);
 
 protected:
 
@@ -47,12 +49,23 @@ private:
     const float _fsHz;
     const unsigned int _envCount;
 
-    enum State { SILENT, RAMP_UP, RAMP_DOWN, TONE };
+    enum State { SILENT, RAMP_UP, RAMP_DOWN, ACTIVE };
     State _state = State::SILENT;
 
+    enum Mode { TONE, PCM };
+    Mode _mode = Mode::TONE;
+
+    // Internal state for tone generations
     unsigned int _envPtr = 0;
     float _omega = 0;
     float _phi = 0;
+
+    // Internal state for PCM
+    const short* _pcmData;
+    unsigned int _pcmDataLen;
+    unsigned int _pcmDataRateHz;
+    unsigned int _pcmDataPtr = 0;
+    unsigned int _pcmDataMod = 0;
 };
 
 }

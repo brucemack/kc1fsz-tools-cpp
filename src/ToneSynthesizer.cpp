@@ -12,7 +12,17 @@ ToneSynthesizer::ToneSynthesizer(float fsHz, float envelopeMs)
 }
 
 void ToneSynthesizer::setFreq(float freqHz) {
+    _mode = Mode::TONE;
     _omega = PI2 * freqHz / _fsHz;
+}
+
+void ToneSynthesizer::setPcm(const short* pcm, unsigned int pcmLength, unsigned int rateHz) {
+    _mode = Mode::PCM;
+    _pcmData = pcm;
+    _pcmDataLen = pcmLength;
+    _pcmDataRateHz = rateHz;
+    _pcmDataPtr = 0;
+    _pcmDataMod = 0;
 }
 
 void ToneSynthesizer::setEnabled(bool on) {
@@ -23,7 +33,7 @@ void ToneSynthesizer::setEnabled(bool on) {
         }
         // Otherwise, we're already ramping up or ramped up
     } else {
-        if (_state == State::RAMP_UP || _state == State::TONE) {
+        if (_state == State::RAMP_UP || _state == State::ACTIVE) {
             _envPtr = 0;
             _state = State::RAMP_DOWN;
         }
@@ -36,18 +46,15 @@ float ToneSynthesizer::getSample() {
         return 0.0;
     }
     else {
-        float a = _sin(_phi);
-        _phi += _omega;
-        // This is needed to avoid strange wrapping issues that 
-        // occur with the phase.
-        _phi = fmod(_phi, PI2);
+        
+        // Manage the envelope to avoid sharp discontinuities
         float scale = 1.0;
         if (_state == State::RAMP_UP) {
             scale = (float)_envPtr / (float)_envCount;
             _envPtr++;
             // Look for end of ramp
             if (_envPtr == _envCount) {
-                _state = State::TONE;
+                _state = State::ACTIVE;
             }
         }
         else if (_state == State::RAMP_DOWN) {
@@ -58,7 +65,38 @@ float ToneSynthesizer::getSample() {
                 _state = State::SILENT;
             }
         }
-        return a * scale;
+
+        float sample;
+        
+        if (_mode == Mode::TONE) {
+            sample = _sin(_phi);
+            _phi += _omega;
+            // This is needed to avoid strange wrapping issues that 
+            // occur with the phase.
+            _phi = fmod(_phi, PI2);
+        } 
+        else if (_mode == Mode::PCM) {
+            const unsigned int w = _fsHz / _pcmDataRateHz;
+            // TODO: DO SOME BETTER DECIMATION!
+            // 16-bit PCM to float
+            float a0 = (float)_pcmData[_pcmDataPtr] / 32766.0;
+            float a1 = a0;
+            if (_pcmDataPtr < _pcmDataLen - 1) {
+                a1 = (float)_pcmData[_pcmDataPtr + 1] / 32766.0;
+            }
+            // Interpolate between samples
+            float diff = a1 - a0;
+            sample = a0 + diff * ((float)_pcmDataMod / (float)w);
+            _pcmDataMod++;
+            if (_pcmDataMod == w) {
+                _pcmDataMod = 0;
+                // Don't go off the end
+                if (_pcmDataPtr + 1 < _pcmDataLen)
+                    _pcmDataPtr++;
+            }
+        }
+
+        return sample * scale;
     }    
 }
 
