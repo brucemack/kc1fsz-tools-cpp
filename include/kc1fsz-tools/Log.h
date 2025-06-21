@@ -40,6 +40,8 @@ public:
     Log(Clock* clock) { _clock = clock; }
 
     virtual void info(const char* format, ...) {
+        if (!_enabled)
+            return;
         va_list argptr;
         va_start(argptr, format);
         char buf[128];
@@ -53,6 +55,8 @@ public:
     }
 
     virtual void error(const char* format, ...) {
+        if (!_enabled)
+            return;
         va_list argptr;
         va_start(argptr, format);
         char buf[128];
@@ -67,6 +71,8 @@ public:
 
     virtual void debugDump(const char* msg, 
         const uint8_t* data, uint32_t dataLen) {
+        if (!_enabled)
+            return;
 
         char timeBuf[32];
         _fmtTime(timeBuf, 32);
@@ -77,6 +83,8 @@ public:
 
     virtual void infoDump(const char* msg, 
         const uint8_t* data, uint32_t dataLen) {
+        if (!_enabled)
+            return;
 
         char timeBuf[32];
         _fmtTime(timeBuf, 32);
@@ -86,8 +94,15 @@ public:
     }
 
     virtual void println(const char* msg) {
+        if (!_enabled)
+            return;
         std::cout << msg << std::endl;
     }
+
+    /**
+     * @brief Used to turn on/off output
+     */
+    void setEnabled(bool e) { _enabled = e; }
 
 protected:
 
@@ -115,6 +130,7 @@ protected:
 private:
 
     Clock* _clock = 0;
+    bool _enabled = true;
 };
 }
 
