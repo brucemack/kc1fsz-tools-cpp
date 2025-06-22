@@ -80,13 +80,7 @@ float ToneSynthesizer::getSample() {
             // TODO: DO SOME BETTER DECIMATION!
             // 16-bit PCM to float
             float a0 = (float)_pcmData[_pcmDataPtr] / 32766.0;
-            float a1 = a0;
-            if (_pcmDataPtr < _pcmDataLen - 1) {
-                a1 = (float)_pcmData[_pcmDataPtr + 1] / 32766.0;
-            }
-            // Interpolate between samples
-            float diff = a1 - a0;
-            sample = a0 + diff * ((float)_pcmDataMod / (float)w);
+            sample = a0 * 3.0;
             _pcmDataMod++;
             if (_pcmDataMod == w) {
                 _pcmDataMod = 0;
