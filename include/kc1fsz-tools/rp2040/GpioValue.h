@@ -19,6 +19,7 @@
 #ifndef _GpioValue_h
 #define _GpioValue_h
 
+#include <cstdio>
 #include <hardware/gpio.h>
 #include "kc1fsz-tools/BinaryWrapper.h"
 
@@ -27,16 +28,26 @@ namespace kc1fsz {
 class GpioValue : public BinaryWrapper {
 public:
 
-    GpioValue(int pin) 
-    :   _pin(pin) { }
+    GpioValue(int pin, bool flip0) 
+    :   _pin(pin), _flip0(flip0) { }
 
-    bool get() const { return (gpio_get(_pin) == 1) ^ _activeLow; }
+    bool get() const { 
+        bool s = gpio_get(_pin) == 1;
+        if (_flip0)
+            s = !s;
+        if (_activeLow)
+            s = !s;
+        return s;
+    }
 
-    void setActiveLow(bool b) { _activeLow = b; }
+    void setActiveLow(bool b) { 
+        _activeLow = b; 
+    }
 
 private:
 
     const int _pin;
+    const bool _flip0;
     bool _activeLow = false;
 };
 

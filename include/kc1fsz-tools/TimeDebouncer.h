@@ -36,7 +36,8 @@ public:
     :   _clock(clock),
         _rawValue(rawValue),
         _debouncedState(rawValue.get()),
-        _lastStableTime(clock.time()) { }
+        _lastStableTime(clock.time()) { 
+    }
 
     void setActiveTime(uint32_t ms) { _activeTimeMs = ms; }
     void setInactiveTime(uint32_t ms) { _inactiveTimeMs = ms; }
@@ -51,14 +52,17 @@ public:
         // If the raw state is the same as the debounced state then 
         // we don't have the start of a valid transition yet, keep
         // moving the start of the transition period forward.
-        if (_debouncedState == state)
+        if (_debouncedState == state) {
            const_cast<TimeDebouncer*>(this)->_lastStableTime = _clock.time();
+        }
         // If the raw state is different from the debounced state
         // then we are in a POTENTIAL transition. Keep watching 
         // the time and see if we make it through the transition window.
-        else 
-            if ((_clock.time() - _lastStableTime) > transitionTimeMs)
-                _debouncedState != _debouncedState;
+        else {
+            if ((_clock.time() - _lastStableTime) > transitionTimeMs) {
+                const_cast<TimeDebouncer*>(this)->_debouncedState = !_debouncedState;
+            }
+        }
         return _debouncedState;
     }
 
