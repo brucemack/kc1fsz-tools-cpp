@@ -20,6 +20,9 @@
 
 #include <cstdint>
 #include <ctime>
+#include <iostream>
+
+using namespace std;
 
 namespace kc1fsz {
 
@@ -35,7 +38,7 @@ void LinuxPollTimer::setIntervalUs(uint32_t us) {
 
 static uint64_t getTimeUs() {    
     struct timespec ts;
-    if (clock_gettime(CLOCK_REALTIME, &ts) == -1) {
+    if (clock_gettime(CLOCK_REALTIME, &ts) != -1) {
         return ts.tv_sec * 1000000 + (ts.tv_nsec / 1000);
     } else {
         return 0;
