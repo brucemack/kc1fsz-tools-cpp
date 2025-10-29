@@ -20,15 +20,15 @@
 
 #include <cstdint>
 #include <ctime>
+#include <cassert>
 #include <iostream>
 
 using namespace std;
 
 namespace kc1fsz {
 
-LinuxPollTimer::LinuxPollTimer(uint32_t us)
-:   _intervalUs(us) {   
-    reset();
+LinuxPollTimer::LinuxPollTimer(uint32_t us) {
+    setIntervalUs(us);
 }
 
 void LinuxPollTimer::setIntervalUs(uint32_t us) {   
@@ -39,8 +39,9 @@ void LinuxPollTimer::setIntervalUs(uint32_t us) {
 static uint64_t getTimeUs() {    
     struct timespec ts;
     if (clock_gettime(CLOCK_REALTIME, &ts) != -1) {
-        return ts.tv_sec * 1000000 + (ts.tv_nsec / 1000);
+        return (ts.tv_sec * 1000000L) + (ts.tv_nsec / 1000L);
     } else {
+        assert(false);
         return 0;
     }
 }
@@ -52,7 +53,8 @@ void LinuxPollTimer::reset() {
 
 bool LinuxPollTimer::poll() {  
     uint64_t now = getTimeUs();
-    if (now >= _nextPointUs) {
+    //cout << now << " " << _nextPointUs << " " << _intervalUs << endl;
+    if (now > _nextPointUs) {
         _nextPointUs += _intervalUs;
         return true;
     } else {

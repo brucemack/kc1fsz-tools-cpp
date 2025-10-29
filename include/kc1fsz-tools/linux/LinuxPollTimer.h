@@ -45,7 +45,7 @@ public:
 
 private:
 
-    uint32_t _intervalUs = 0;
+    uint64_t _intervalUs = 0;
     uint64_t _startPointUs = 0;
     uint64_t _nextPointUs = 0;
 };
