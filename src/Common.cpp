@@ -72,7 +72,7 @@ void prettyHexDump(const uint8_t* data, uint32_t len, std::ostream& out,
         for (uint16_t i = 0; i < 16; i++) {
             uint32_t k = line * 16 + i;
             if (k < len) {
-                sprintf(buf, "%02x", (unsigned int)data[k]);
+                snprintf(buf, 16, "%02x", (unsigned int)data[k]);
                 out << buf << " ";
             } else {
                 out << "   ";
@@ -186,11 +186,10 @@ int32_t ms_since(timestamp point) {
     return b;
 }
 
+#ifdef PICO_BUILD
 // TODO: 
 static uint32_t lastMsSinceBoot = 0;
 static uint32_t lastEpochTime = 0;
-
-#ifdef PICO_BUILD
 uint32_t get_epoch_time() {
     uint32_t diff = to_ms_since_boot(get_absolute_time()) - lastMsSinceBoot;
     return lastEpochTime + (uint32_t)(diff / 1000);
@@ -210,10 +209,11 @@ void format_iso_time(char* buf, uint32_t bufLen) {
     time_t ut2 = get_epoch_time();
     int ms = ut2 % 1000;
     struct tm* tm_info = localtime(&ut2);
+    // The YYYY-MM-DD:HH:MM:SS part takes up 19 characters
     strftime(buf, bufLen, "%Y-%m-%dT%H:%M:%S.000", tm_info);
     // If there's room, overwrite the MS
     if (bufLen >= 24)
-        sprintf(buf + 19, ".%03d", ms);
+        snprintf(buf + 19, bufLen - 19, ".%03d", ms);
 }
 
 void formatIP4Address(uint32_t addr, char* dottedAddr, uint32_t dottedAddrSize) {
