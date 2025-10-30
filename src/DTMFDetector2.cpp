@@ -117,7 +117,7 @@ void DTMFDetector2::setSignalThreshold(float dbfs) {
     _signalThresholdPower = pow(dbvToVrms(dbfs), 2.0) * 32767.0; 
 }
 
-void DTMFDetector2::processBlock(const float* block) {  
+void DTMFDetector2::processBlock(const int16_t* block) {
 
     // Shift the history to the left. Areas are overlapping.
     const unsigned preserve = N3 - _blockSize;
@@ -126,9 +126,28 @@ void DTMFDetector2::processBlock(const float* block) {
     // Convert to 16-bit PCM and place in the most recent section 
     // of the history buffer
     int16_t* historyStart = &(_history[preserve]);
+    std::memcpy(historyStart, block, _blockSize * sizeof(int16_t));
+
+    _processHistory();
+}
+
+void DTMFDetector2::processBlock(const float* block) {  
+
+    // Shift the history to the left. Areas are overlapping.
+    const unsigned preserve = N3 - _blockSize;
+    std::memmove((void*)_history, (const void*)(_history + _blockSize), preserve * sizeof(int16_t));
+
+    // Place in the most recent section of the history buffer
+    int16_t* historyStart = &(_history[preserve]);
     for (unsigned i = 0; i < _blockSize; i++)
         // Convert to q15
-        historyStart[i] = block[i] * 32767.0;
+        *(historyStart++) = block[i] * 32767.0;
+
+    _processHistory();
+}
+
+void DTMFDetector2::_processHistory() {  
+
     // Run VSC detection on the last N3 (136) samples.
     const char vscSymbol = _detectVSC(_history, N3);
     if (vscSymbol != 0)

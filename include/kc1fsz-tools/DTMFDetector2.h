@@ -38,11 +38,16 @@ public:
     DTMFDetector2(Clock& clock, unsigned blockSize = 64);
 
     /**
-     * @param block 256 input (8ms) samples in 32-bit signed PCM format.
-     * @return An indication of whether a valid symbol has been detected.
-     * TODO: CHANGE BACK TO FIXED POINT!
+     * @param block Block of samples in signed PCM format. LENGTH
+     * MUST MATCH THE BLOCKSIZE DEFINED IN THE CONSTRUCTOR!
      */
-    void processBlock(const float* block);
+    void processBlock(const float* pcmBlock);
+
+    /**
+     * @param block Block of samples in signed PCM format. LENGTH
+     * MUST MATCH THE BLOCKSIZE DEFINED IN THE CONSTRUCTOR!
+     */
+    void processBlock(const int16_t* pcmBlock);
 
     /**
      * @return True if a valid detected symbol is availble to be fetched
@@ -73,6 +78,8 @@ public:
     float getDiagValue() const { return _diagValue; }
 
 private:
+
+    void _processHistory();
 
     /*
     * @brief Indicates which valid symbol (if any) is in the block.
