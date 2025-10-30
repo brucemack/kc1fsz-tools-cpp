@@ -20,6 +20,7 @@
 #include <iostream>
 #include <cmath>
 #include <cstring>
+#include <cassert>
 
 #include "kc1fsz-tools/Clock.h"
 #include "kc1fsz-tools/DTMFDetector2.h"
@@ -150,9 +151,10 @@ void DTMFDetector2::_processHistory() {
 
     // Run VSC detection on the last N3 (136) samples.
     const char vscSymbol = _detectVSC(_history, N3);
-    if (vscSymbol != 0)
+    if (vscSymbol != 0) {
         _lastVscTime = _clock.time();
-    //cout << "VSC Symbol " << (int)vscSymbol << " " << vscSymbol << endl;
+        cout << "VSC Symbol " << (int)vscSymbol << " " << vscSymbol << endl;
+    }
 
     // The VSC->DSC transition requires some history.
     //
@@ -293,17 +295,24 @@ static int16_t computePower(int16_t* samples, uint32_t n, int32_t coeff) {
     return (int16_t)r;
 }
 
+
+
 char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
 
     // Compute the power on the fundamental frequencies across rows
     // and columns.
     bool nonZeroFound = false;
     int16_t powerRow[4], powerCol[4];
+    float p = 0;
     for (unsigned k = 0; k < 4; k++) {
         powerRow[k] = computePower(samples, n, coeffRow[k]);
-        //printf("Row %d %f\n", k, sqrt((float)powerRow[k] / 32767.0));
+        p = sqrt((float)powerRow[k] / 32767.0);
+        //if (p > 0.1)
+        //    printf("Row %d %f\n", k, p);
         powerCol[k] = computePower(samples, n, coeffCol[k]);
-        //printf("Col %d %f\n", k, sqrt((float)powerCol[k] / 32767.0));
+        p = sqrt((float)powerCol[k] / 32767.0);
+        //if (p > 0.01)
+        //    printf("Col %d %f\n", k, p);
         if (powerRow[k] > 0 || powerCol[k] > 0)
             nonZeroFound = true;
     }
