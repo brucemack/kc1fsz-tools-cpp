@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2024, Bruce MacKinnon KC1FSZ
+ * Copyright (C) 2025, Bruce MacKinnon KC1FSZ
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -109,6 +109,13 @@ uint32_t get_epoch_time();
 void set_epoch_time(uint32_t t);
 
 void format_iso_time(char* buf, uint32_t bufLen);
+
+// ------ Pack/Unpack Multibyte Numbers ------
+
+void pack_uint32_be(uint32_t v, uint8_t* out);
+void pack_uint16_be(uint16_t v, uint8_t* out);
+uint32_t unpack_uint32_be(const uint8_t* in);
+uint16_t unpack_uint16_be(const uint8_t* in);
 
 }
 
