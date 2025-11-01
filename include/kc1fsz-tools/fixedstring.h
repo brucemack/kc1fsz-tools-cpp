@@ -34,6 +34,7 @@ public:
     fixedstring(const fixedstring& that) { strcpyLimited(_s, that._s, _size); }
     fixedstring(const char* s) { strcpyLimited(_s, s, _size); }
     bool operator== (const char* other) const { return strcmp(_s, other) == 0; }
+    bool operator== (const fixedstring& other) const { return strcmp(_s, other._s) == 0; }
 
     const char* c_str() const { return _s; }
     uint32_t length() const { return std::strlen(_s); }
