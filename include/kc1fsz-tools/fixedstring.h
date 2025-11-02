@@ -39,6 +39,7 @@ public:
     const char* c_str() const { return _s; }
     uint32_t length() const { return std::strlen(_s); }
     uint32_t size() const { return length(); }
+    bool empty() const { return _s[0] == 0; }
 
     void clear() {
         _s[0] = 0;
