@@ -153,7 +153,7 @@ void DTMFDetector2::_processHistory() {
     const char vscSymbol = _detectVSC(_history, N3);
     if (vscSymbol != 0) {
         _lastVscTime = _clock.time();
-        cout << "VSC Symbol " << (int)vscSymbol << " " << vscSymbol << endl;
+        //cout << "VSC Symbol " << (int)vscSymbol << " " << vscSymbol << endl;
     }
 
     // The VSC->DSC transition requires some history.
