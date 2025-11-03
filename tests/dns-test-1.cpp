@@ -56,6 +56,13 @@ int makeSRVQuery(uint16_t id, const char* domainName, uint8_t* packet,
             len++;
         }
     }
+    // We should never have a dot as a final character
+    if (postDot)
+        return -3;
+    // Fill in the correct length for the last label now 
+    // that we know it
+    packet[i - len - 1] = len;
+    // Space for the rest?
     if (i + 5 == packetSize)
         return -1;
     // Ending null
