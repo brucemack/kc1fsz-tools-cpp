@@ -21,7 +21,7 @@ include(pico_sdk_import.cmake)
 endif()
 project(kc1fsz-tools-cpp C CXX ASM)
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
 file(MAKE_DIRECTORY tmp)
 
 if(DEFINED ENV{PICO_BUILD})
@@ -65,3 +65,14 @@ target_link_libraries(uart-test-1 pico_stdlib hardware_i2c hardware_adc pico_mul
 endif()
 target_include_directories(uart-test-1 PRIVATE src)
 target_include_directories(uart-test-1 PRIVATE include)
+
+# ------ dns--test-1 ---------------------------------------------------------
+# Target: Host
+
+add_executable(dns-test-1
+  tests/dns-test-1.cpp
+  src/Common.cpp
+) 
+
+target_include_directories(dns-test-1 PRIVATE src)
+target_include_directories(dns-test-1 PRIVATE include)
