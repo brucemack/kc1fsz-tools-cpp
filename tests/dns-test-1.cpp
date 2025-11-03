@@ -84,6 +84,25 @@ int writeDomainName(const char* domainName, uint8_t* packet,
     return i;
 }
 
+/**
+ * @param packet A pointer to the ENTIRE DNS packet. This
+ * is important since some names contain pointers to 
+ * other locations in the packet.
+ * @param nameOffset The starting location of the name 
+ * to be parsed.
+ * @param name Will be populated with a null-terminated
+ * domain name in dotted format.
+ * @returns Number of linear bytes consumed from the packet to 
+ * extract the name. A "pointer" only counts as one, regardless
+ * of how long the name is that is obtained by following the
+ * pointer.
+ */
+int parseDomainName(const uint8_t* packet, unsigned packetSize,
+    unsigned nameOffset, char* name, unsigned nameSize) {
+
+}
+
+
 int makeDNSQuery_SRV(uint16_t id, const char* domainName, uint8_t* packet, 
     unsigned packetSize) {
     int i = makeDNSHeader(id, packet, packetSize);
@@ -128,7 +147,24 @@ int makeDNSQuery_A(uint16_t id, const char* domainName, uint8_t* packet,
     return i;
 }
 
+void test_1() {
+    {
+        const char* td0 = "a.bc.d";
+        uint8_t packet[64];
+        int rc = writeDomainName(td0, packet, 64);
+        const unsigned expectedPacketLen = 8;
+        uint8_t expectedPacket[expectedPacketLen] = 
+            { 1, 'a', 2, 'b', 'c', 1, 'd', 0 };
+        assert(rc == 8);
+        assert(memcmp(expectedPacket, packet, 8) == 0);
+    }
+}
+
 int main(int, const char**) {
+    test_1();
+}
+
+int test_2() {
 
     const unsigned PACKET_SIZE = 128;
     uint8_t packet[PACKET_SIZE];
