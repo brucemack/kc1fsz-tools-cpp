@@ -91,17 +91,16 @@ int writeDomainName(const char* domainName, uint8_t* packet,
  * other locations in the packet.
  * @param nameOffset The starting location of the name 
  * to be parsed.
- * @param name Will be populated with a null-terminated
- * domain name in dotted format.
- * @returns Number of linear bytes consumed from the packet to 
- * extract the name. A "pointer" only counts as one, regardless
- * of how long the name is that is obtained by following the
- * pointer.
+ * @param name If non-null, will be populated with a null-terminated
+ * domain name in dotted format. A null can be passed if the goal 
+ * is just to skip over the name in the packet.
+ * @returns A negative number on error, or the ending offset 
+ * in the packet immediately following the name.
  */
 int parseDomainName(const uint8_t* packet, unsigned packetSize,
     unsigned nameOffset, char* name, unsigned nameSize) {
     unsigned i = nameOffset;
-    int len = 0;
+    unsigned len = 0;
     bool first = true;
     unsigned namePtr = 0;
     while (true) {
@@ -110,26 +109,37 @@ int parseDomainName(const uint8_t* packet, unsigned packetSize,
         len = packet[i++];
         // End?
         if (len == 0) {
-            if (namePtr == nameSize)
-                return -2;
-            name[namePtr++] = 0;
+            if (name) {
+                if (namePtr == nameSize)
+                    return -2;
+                name[namePtr++] = 0;
+            }
             return i;
         }
         // Terminate previous label
         if (!first) {
-            if (namePtr == nameSize)
-                return -2;
-            name[namePtr++] = '.';
+            if (name) {
+                if (namePtr == nameSize)
+                    return -2;
+                name[namePtr++] = '.';
+            }
         }
         first = false;
-        // Pointer?
+        // Pointer? 
         if ((len & 0xc0) == 0xc0) {
             if (i == packetSize) 
                 return -1;
-            int offset = packet[i++];
+            // The offset is 14 bits.
+            unsigned offset = ((len & 0b00111111) << 8) | packet[i++];
+            // Make sure its contained in the packet
+            if (offset >= packetSize)
+                return -3;
             // Follow the pointer and accumulate more labels
-            int rc = parseDomainName(packet, packetSize, offset, name + namePtr, 
-                nameSize - namePtr);
+            int rc = parseDomainName(packet, packetSize, offset, 
+                name ? name + namePtr : 0, 
+                name ? nameSize - namePtr : 0);
+            if (rc < 0)
+                return rc;
             // It is assumed that the null termination was handled by the 
             // parseDomainName() call above.
             return i;
@@ -139,12 +149,103 @@ int parseDomainName(const uint8_t* packet, unsigned packetSize,
             // Error checks
             if (i + len >= packetSize) 
                 return -1;
-            if (namePtr + len >= nameSize) 
-                return -2;
-            for (unsigned j = 0; j < len; j++)
-                name[namePtr++] = packet[i++];
+            if (name) {
+                if (namePtr + len >= nameSize) 
+                    return -2;
+            }
+            for (unsigned j = 0; j < len; j++) {
+                if (name)
+                    name[namePtr++] = packet[i];
+                i++;
+            }
         }
     }
+}
+
+/**
+ * @returns The offset into the packet immediately following 
+ * the questions. 
+ */
+int skipQuestions(const uint8_t* packet, unsigned packetLen) {
+    if (packetLen < 12)
+        return -1;
+    // How many questions are there?
+    uint16_t qdcount = unpack_uint16_be(packet + 4);
+    unsigned i = 12;
+    for (unsigned q = 0; q < qdcount; q++) {
+        // Parse out the QNAME
+        const unsigned nameCapacity = 65;
+        char name[nameCapacity];
+        int rc = parseDomainName(packet, packetLen, i, name, nameCapacity);
+        if (rc < 0)
+            return rc;
+        i = rc;
+        // Skip the QTYPE and QCLASS
+        if (i + 4 >= packetLen)
+            return -1;
+        i += 4;
+    }
+    return i;
+}
+
+int parseDNSAnswer_SRV(const uint8_t* packet, unsigned packetLen, 
+    unsigned answerOffset,
+    uint16_t* pri, uint16_t* weight, uint16_t* port, 
+    char* hostname, unsigned hostnameCapacity) {
+    unsigned i = answerOffset;
+    // We just skip the NAME by passing 0s
+    int rc = parseDomainName(packet, packetLen, i, 0, 0);
+    if (rc < 0)
+        return rc;
+    i = rc;
+    // TYPE
+    if (i + 2 > packetLen)
+        return -1;
+    uint16_t typeCode = unpack_uint16_be(packet + i);
+    i += 2;
+    if (typeCode != 0x0021)
+        return -3;
+    // CLASS
+    if (i + 2 > packetLen)
+        return -1;
+    uint16_t classCode = unpack_uint16_be(packet + i);
+    i += 2;
+    if (classCode != 0x0001)
+        return -4;
+    // TTL
+    if (i + 4 > packetLen)
+        return -1;
+    uint32_t ttl = unpack_uint32_be(packet + i);
+    i += 4;
+    // RDLENGTH
+    if (i + 2 > packetLen)
+        return -1;
+    uint16_t rdLength = unpack_uint16_be(packet + i);
+    i += 2;
+    // RDATA 
+    if (i + rdLength > packetLen)
+        return -1;
+    // RDATA - PRI
+    if (i + 2 > packetLen)
+        return -1;
+    *pri = unpack_uint16_be(packet + i);
+    i += 2;
+    // RDATA - WEIGHT
+    if (i + 2 > packetLen)
+        return -1;
+    *weight = unpack_uint16_be(packet + i);
+    i += 2;
+    // RDATA - PORT
+    if (i + 2 > packetLen)
+        return -1;
+    *port = unpack_uint16_be(packet + i);
+    i += 2;
+    // RDATA - HOSTNAME
+    rc = parseDomainName(packet, packetLen, i, hostname, hostnameCapacity);
+    if (rc < 0)
+        return rc;
+    i = rc;
+    return i;
 }
 
 int makeDNSQuery_SRV(uint16_t id, const char* domainName, uint8_t* packet, 
@@ -191,7 +292,7 @@ int makeDNSQuery_A(uint16_t id, const char* domainName, uint8_t* packet,
     return i;
 }
 
-void test_1() {
+void unit_tests_1() {
     {
         const char* td0 = "a.bc.d";
         uint8_t packet[64];
@@ -225,24 +326,48 @@ void test_1() {
         //prettyHexDump((const uint8_t*)name, 32, cout);
         assert(strcmp(name, "a.bc.d.e") == 0);
         
-        // Intentionally too small
+        // Name intentionally too small
         char name2[6];
         int rc2 = parseDomainName(expectedPacket, expectedPacketLen,
             4, name2, 6);
         assert(rc2 == -2);
     }
+    {
+        // Make a packet with a pointer that is outside of the range 
+        // of the packet.
+        const unsigned packetLen = 13;
+        uint8_t packet[packetLen] = 
+            { 0, 1, 'e', 0, 1, 'a', 2, 'b', 'c', 1, 'd', 0xc0, 13 };
+        char name[32];
+        int rc = parseDomainName(packet, packetLen, 4, name, 32);
+        assert(rc == -3);
+    }
+    {
+        const unsigned packetLen = 8;
+        uint8_t packet[packetLen] = 
+            { 1, 'a', 2, 'b', 'c', 1, 'd', 0 };
+        char name[32];
+        int rc0 = parseDomainName(packet, packetLen, 0, name, 32);
+        assert(rc0 == 8);
+        //prettyHexDump((const uint8_t*)name, 32, cout);
+
+        // Construct a case where the packet isn't long enough 
+        rc0 = parseDomainName(packet, 6, 0, name, 32);
+        assert(rc0 == -1);
+
+        // Construct a case where the packet isn't long enough - specifically
+        // running out of space before the trailing 0
+        rc0 = parseDomainName(packet, 7, 0, name, 32);
+        assert(rc0 == -1);
+    }
 }
 
-int main(int, const char**) {
-    test_1();
-}
-
-int test_2() {
+int query_1() {
 
     const unsigned PACKET_SIZE = 128;
     uint8_t packet[PACKET_SIZE];
-    //int len = makeDNSQuery_SRV(0xc930, DOMAIN_0, packet, PACKET_SIZE);
-    int len = makeDNSQuery_A(0xa8d6, DOMAIN_1, packet, PACKET_SIZE);
+    int len = makeDNSQuery_SRV(0xc930, DOMAIN_0, packet, PACKET_SIZE);
+    //int len = makeDNSQuery_A(0xa8d6, DOMAIN_1, packet, PACKET_SIZE);
     cout << len << endl;
     if (len < 0)
         return -1;
@@ -303,7 +428,25 @@ int test_2() {
         int rc = recvfrom(sockFd, readBuffer, readBufferSize, 0,
             (struct sockaddr *)&peerAddr, &peerAddrLen);
         if (rc > 0) {
-            prettyHexDump(readBuffer, rc, cout);
+
+            // Skip all of the questions
+            int answerStart = skipQuestions(readBuffer, rc);
+            // Parse the answer
+            //prettyHexDump(readBuffer + answerStart, rc - answerStart, cout);
+            uint16_t pri, weight, port;
+            char srvHost[65];
+            int rc1 = parseDNSAnswer_SRV(readBuffer, rc, answerStart,
+                    &pri, &weight, &port, srvHost, 65);
+            if (rc1 < 0)
+                cout << "rc1 " << rc1 << endl;
+            else {
+                cout << "SRV: " << srvHost << ":" << port << endl;
+            }
         }
     }
+}
+
+int main(int, const char**) {
+    unit_tests_1();
+    query_1();
 }
