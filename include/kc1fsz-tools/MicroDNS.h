@@ -19,16 +19,30 @@
 
 #include <cstdint>
 
+/**
+ * Some simple utility functions for creating/parsing DNS
+ * request/response packets. There is no networking code
+ * here, that is assumed to be handled elsewhere.
+ * 
+ */
 namespace kc1fsz {
+
     namespace microdns {
 
-int makeDNSHeader(uint16_t id, uint8_t* packet, unsigned packetSize);
+/**
+ * @returns Negative number on error, or the number of bytes
+ * written into the packet.
+ */
+int makeDNSHeader(uint16_t id, uint8_t* packet, unsigned packetCapacity);
 
 /**
+ * Writes a domain name into the packet provided, per the DNS
+ * specification.
+ * 
  * @returns Number of bytes written.
  */
-int writeDomainName(const char* domainName, uint8_t* packet, 
-    unsigned packetSize);
+int writeDomainName(const char* domainName, uint8_t* buf, 
+    unsigned bufCapacity);
 
 /**
  * @param packet A pointer to the ENTIRE DNS packet. This
@@ -43,7 +57,7 @@ int writeDomainName(const char* domainName, uint8_t* packet,
  * in the packet immediately following the name.
  */
 int parseDomainName(const uint8_t* packet, unsigned packetSize,
-    unsigned nameOffset, char* name, unsigned nameSize);
+    unsigned nameOffset, char* name, unsigned nameCapacity);
 
 /**
  * @returns The offset into the packet immediately following 
@@ -51,13 +65,17 @@ int parseDomainName(const uint8_t* packet, unsigned packetSize,
  */
 int skipQuestions(const uint8_t* packet, unsigned packetLen);
 
+/**
+ * Parses key data elements out of a response to an SRV query.
+ */
 int parseDNSAnswer_SRV(const uint8_t* packet, unsigned packetLen, 
-    unsigned answerOffset,
     uint16_t* pri, uint16_t* weight, uint16_t* port, 
     char* hostname, unsigned hostnameCapacity);
 
+/**
+ * Parses key data elements out of a response to an A query.
+ */
 int parseDNSAnswer_A(const uint8_t* packet, unsigned packetLen, 
-    unsigned answerOffset,
     uint32_t* addr);
 
 int makeDNSQuery_SRV(uint16_t id, const char* domainName, uint8_t* packet, 

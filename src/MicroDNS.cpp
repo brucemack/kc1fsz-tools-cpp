@@ -197,10 +197,13 @@ int skipQuestions(const uint8_t* packet, unsigned packetLen) {
 }
 
 int parseDNSAnswer_SRV(const uint8_t* packet, unsigned packetLen, 
-    unsigned answerOffset,
     uint16_t* pri, uint16_t* weight, uint16_t* port, 
     char* hostname, unsigned hostnameCapacity) {
-    unsigned i = answerOffset;
+    // Skip past the header and all questions 
+    int rc0 = skipQuestions(packet, packetLen);
+    if (rc0 < 0)
+        return rc0;
+    unsigned i = rc0;
     // We just skip the NAME by passing 0s
     int rc = parseDomainName(packet, packetLen, i, 0, 0);
     if (rc < 0)
@@ -257,10 +260,13 @@ int parseDNSAnswer_SRV(const uint8_t* packet, unsigned packetLen,
 }
 
 int parseDNSAnswer_A(const uint8_t* packet, unsigned packetLen, 
-    unsigned answerOffset,
     uint32_t* addr) {
-    unsigned i = answerOffset;
-    // We just skip the NAME by passing 0s
+    // Skip past the header and all questions 
+    int rc0 = skipQuestions(packet, packetLen);
+    if (rc0 < 0)
+        return rc0;
+    unsigned i = rc0;
+    // We just skip paste the NAME
     int rc = parseDomainName(packet, packetLen, i, 0, 0);
     if (rc < 0)
         return rc;

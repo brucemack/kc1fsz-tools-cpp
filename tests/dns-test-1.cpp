@@ -95,9 +95,8 @@ void unit_tests_1() {
 static const uint8_t PACKET_0[] = {0xa8, 0xd6, 0x81, 0x80, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x05, 0x32, 0x39, 0x39, 0x39, 0x39, 0x05, 0x6e, 0x6f, 0x64, 0x65, 0x73, 0x0b, 0x61, 0x6c, 0x6c, 0x73, 0x74, 0x61, 0x72, 0x6c, 0x69, 0x6e, 0x6b, 0x03, 0x6f, 0x72, 0x67, 0x00, 0x00, 0x01, 0x00, 0x01, 0xc0, 0x0c, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x3c, 0x00, 0x04, 0xad, 0xc7, 0x77, 0xb1};
 
 static void unit_tests_2() {
-    int answerStart = skipQuestions(PACKET_0, sizeof(PACKET_0));
     uint32_t addr = 0;
-    int rc1 = parseDNSAnswer_A(PACKET_0, sizeof(PACKET_0), answerStart, &addr);
+    int rc1 = parseDNSAnswer_A(PACKET_0, sizeof(PACKET_0), &addr);
     assert(rc1 > 0);
     char addrStr[32];
     formatIP4Address(addr, addrStr, 32);
@@ -185,9 +184,6 @@ int query_1() {
             }
             cout << "};" << endl;
             */
-
-            // Skip all of the questions
-            int answerStart = skipQuestions(readBuffer, rc);
             // Parse the answer
             /*
             uint16_t pri, weight, port;
@@ -201,7 +197,7 @@ int query_1() {
             }
             */
             uint32_t addr;
-            int rc1 = parseDNSAnswer_A(readBuffer, rc, answerStart, &addr);
+            int rc1 = parseDNSAnswer_A(readBuffer, rc, &addr);
             if (rc1 < 0)
                 cout << "rc1 " << rc1 << endl;
             else {
