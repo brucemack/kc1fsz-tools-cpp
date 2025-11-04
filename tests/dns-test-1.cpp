@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <cstring>
+#include <cassert>
 
 #include "kc1fsz-tools/Common.h"
 
@@ -43,7 +44,7 @@ int makeDNSHeader(uint16_t id, uint8_t* packet, unsigned packetSize) {
  */
 int writeDomainName(const char* domainName, uint8_t* packet, 
     unsigned packetSize) {
-    int i = 0;
+    unsigned int i = 0;
     // Write the domain name one label at a time.
     // Labels are delimited by dots.
     int len = 0;
@@ -99,9 +100,52 @@ int writeDomainName(const char* domainName, uint8_t* packet,
  */
 int parseDomainName(const uint8_t* packet, unsigned packetSize,
     unsigned nameOffset, char* name, unsigned nameSize) {
-
+    unsigned i = nameOffset;
+    int len = 0;
+    bool first = true;
+    unsigned namePtr = 0;
+    while (true) {
+        if (i == packetSize) 
+            return -1;
+        len = packet[i++];
+        // End?
+        if (len == 0) {
+            if (namePtr == nameSize)
+                return -2;
+            name[namePtr++] = 0;
+            return i;
+        }
+        // Terminate previous label
+        if (!first) {
+            if (namePtr == nameSize)
+                return -2;
+            name[namePtr++] = '.';
+        }
+        first = false;
+        // Pointer?
+        if ((len & 0xc0) == 0xc0) {
+            if (i == packetSize) 
+                return -1;
+            int offset = packet[i++];
+            // Follow the pointer and accumulate more labels
+            int rc = parseDomainName(packet, packetSize, offset, name + namePtr, 
+                nameSize - namePtr);
+            // It is assumed that the null termination was handled by the 
+            // parseDomainName() call above.
+            return i;
+        }
+        // Normal accumulation
+        else {
+            // Error checks
+            if (i + len >= packetSize) 
+                return -1;
+            if (namePtr + len >= nameSize) 
+                return -2;
+            for (unsigned j = 0; j < len; j++)
+                name[namePtr++] = packet[i++];
+        }
+    }
 }
-
 
 int makeDNSQuery_SRV(uint16_t id, const char* domainName, uint8_t* packet, 
     unsigned packetSize) {
@@ -114,7 +158,7 @@ int makeDNSQuery_SRV(uint16_t id, const char* domainName, uint8_t* packet,
         return i2;
     i += i2;
     // Space for the rest?
-    if (i + 4 >= packetSize)
+    if ((unsigned)(i + 4) >= packetSize)
         return -1;
     // QTYPE
     pack_uint16_be(0x0021, packet + i);
@@ -136,7 +180,7 @@ int makeDNSQuery_A(uint16_t id, const char* domainName, uint8_t* packet,
         return i2;
     i += i2;
     // Space for the rest?
-    if (i + 4 >= packetSize)
+    if ((unsigned)(i + 4) >= packetSize)
         return -1;
     // QTYPE (A type)
     pack_uint16_be(0x0001, packet + i);
@@ -157,6 +201,35 @@ void test_1() {
             { 1, 'a', 2, 'b', 'c', 1, 'd', 0 };
         assert(rc == 8);
         assert(memcmp(expectedPacket, packet, 8) == 0);
+    }
+    {
+        const unsigned expectedPacketLen = 8;
+        uint8_t expectedPacket[expectedPacketLen] = 
+            { 1, 'a', 2, 'b', 'c', 1, 'd', 0 };
+        char name[32];
+        int rc1 = parseDomainName(expectedPacket, expectedPacketLen,
+            0, name, 32);
+        assert(rc1 == 8);
+        //prettyHexDump((const uint8_t*)name, 32, cout);
+        assert(strcmp(name, "a.bc.d") == 0);
+    }
+    {
+        const unsigned expectedPacketLen = 14;
+        uint8_t expectedPacket[expectedPacketLen] = 
+            { 0, 1, 'e', 0, 1, 'a', 2, 'b', 'c', 1, 'd', 0xc0, 1, 0 };
+
+        char name[32];
+        int rc1 = parseDomainName(expectedPacket, expectedPacketLen,
+            4, name, 32);
+        assert(rc1 == 13);
+        //prettyHexDump((const uint8_t*)name, 32, cout);
+        assert(strcmp(name, "a.bc.d.e") == 0);
+        
+        // Intentionally too small
+        char name2[6];
+        int rc2 = parseDomainName(expectedPacket, expectedPacketLen,
+            4, name2, 6);
+        assert(rc2 == -2);
     }
 }
 
