@@ -248,6 +248,46 @@ int parseDNSAnswer_SRV(const uint8_t* packet, unsigned packetLen,
     return i;
 }
 
+int parseDNSAnswer_A(const uint8_t* packet, unsigned packetLen, 
+    unsigned answerOffset,
+    uint32_t* addr) {
+    unsigned i = answerOffset;
+    // We just skip the NAME by passing 0s
+    int rc = parseDomainName(packet, packetLen, i, 0, 0);
+    if (rc < 0)
+        return rc;
+    i = rc;
+    // TYPE
+    if (i + 2 > packetLen)
+        return -1;
+    uint16_t typeCode = unpack_uint16_be(packet + i);
+    i += 2;
+    if (typeCode != 0x0001)
+        return -3;
+    // CLASS
+    if (i + 2 > packetLen)
+        return -1;
+    uint16_t classCode = unpack_uint16_be(packet + i);
+    i += 2;
+    if (classCode != 0x0001)
+        return -4;
+    // TTL
+    if (i + 4 > packetLen)
+        return -1;
+    uint32_t ttl = unpack_uint32_be(packet + i);
+    i += 4;
+    // RDLENGTH
+    if (i + 2 > packetLen)
+        return -1;
+    uint16_t rdLength = unpack_uint16_be(packet + i);
+    i += 2;
+    if (rdLength != 4)
+        return -4;
+    *addr = unpack_uint32_be(packet + i);
+    i += 4;
+    return i;
+}
+
 int makeDNSQuery_SRV(uint16_t id, const char* domainName, uint8_t* packet, 
     unsigned packetSize) {
     int i = makeDNSHeader(id, packet, packetSize);
@@ -366,8 +406,8 @@ int query_1() {
 
     const unsigned PACKET_SIZE = 128;
     uint8_t packet[PACKET_SIZE];
-    int len = makeDNSQuery_SRV(0xc930, DOMAIN_0, packet, PACKET_SIZE);
-    //int len = makeDNSQuery_A(0xa8d6, DOMAIN_1, packet, PACKET_SIZE);
+    //int len = makeDNSQuery_SRV(0xc930, DOMAIN_0, packet, PACKET_SIZE);
+    int len = makeDNSQuery_A(0xa8d6, DOMAIN_1, packet, PACKET_SIZE);
     cout << len << endl;
     if (len < 0)
         return -1;
@@ -432,7 +472,8 @@ int query_1() {
             // Skip all of the questions
             int answerStart = skipQuestions(readBuffer, rc);
             // Parse the answer
-            //prettyHexDump(readBuffer + answerStart, rc - answerStart, cout);
+            prettyHexDump(readBuffer + answerStart, rc - answerStart, cout);
+            /*
             uint16_t pri, weight, port;
             char srvHost[65];
             int rc1 = parseDNSAnswer_SRV(readBuffer, rc, answerStart,
@@ -441,6 +482,16 @@ int query_1() {
                 cout << "rc1 " << rc1 << endl;
             else {
                 cout << "SRV: " << srvHost << ":" << port << endl;
+            }
+            */
+            uint32_t addr;
+            int rc1 = parseDNSAnswer_A(readBuffer, rc, answerStart, &addr);
+            if (rc1 < 0)
+                cout << "rc1 " << rc1 << endl;
+            else {
+                char addrStr[32];
+                formatIP4Address(addr, addrStr, 32);
+                cout << "A: " << addrStr << endl;
             }
         }
     }
