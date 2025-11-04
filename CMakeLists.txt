@@ -72,6 +72,7 @@ target_include_directories(uart-test-1 PRIVATE include)
 add_executable(dns-test-1
   tests/dns-test-1.cpp
   src/Common.cpp
+  src/MicroDNS.cpp
 ) 
 
 target_include_directories(dns-test-1 PRIVATE src)
