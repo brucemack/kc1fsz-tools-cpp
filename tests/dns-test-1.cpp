@@ -212,10 +212,10 @@ int parseDNSAnswer_SRV(const uint8_t* packet, unsigned packetLen,
     i += 2;
     if (classCode != 0x0001)
         return -4;
-    // TTL
+    // TTL (not used)
     if (i + 4 > packetLen)
         return -1;
-    uint32_t ttl = unpack_uint32_be(packet + i);
+    //uint32_t ttl = unpack_uint32_be(packet + i);
     i += 4;
     // RDLENGTH
     if (i + 2 > packetLen)
@@ -271,10 +271,10 @@ int parseDNSAnswer_A(const uint8_t* packet, unsigned packetLen,
     i += 2;
     if (classCode != 0x0001)
         return -4;
-    // TTL
+    // TTL (not used)
     if (i + 4 > packetLen)
         return -1;
-    uint32_t ttl = unpack_uint32_be(packet + i);
+    //uint32_t ttl = unpack_uint32_be(packet + i);
     i += 4;
     // RDLENGTH
     if (i + 2 > packetLen)
@@ -402,6 +402,19 @@ void unit_tests_1() {
     }
 }
 
+// Response to an A record query - CAPTURED FROM A REAL DNS SERVER RESPONSE
+static const uint8_t PACKET_0[] = {0xa8, 0xd6, 0x81, 0x80, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x05, 0x32, 0x39, 0x39, 0x39, 0x39, 0x05, 0x6e, 0x6f, 0x64, 0x65, 0x73, 0x0b, 0x61, 0x6c, 0x6c, 0x73, 0x74, 0x61, 0x72, 0x6c, 0x69, 0x6e, 0x6b, 0x03, 0x6f, 0x72, 0x67, 0x00, 0x00, 0x01, 0x00, 0x01, 0xc0, 0x0c, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x3c, 0x00, 0x04, 0xad, 0xc7, 0x77, 0xb1};
+
+static void unit_tests_2() {
+    int answerStart = skipQuestions(PACKET_0, sizeof(PACKET_0));
+    uint32_t addr = 0;
+    int rc1 = parseDNSAnswer_A(PACKET_0, sizeof(PACKET_0), answerStart, &addr);
+    assert(rc1 > 0);
+    char addrStr[32];
+    formatIP4Address(addr, addrStr, 32);
+    assert(strcmp(addrStr, "173.199.119.199") == 0);
+}
+
 int query_1() {
 
     const unsigned PACKET_SIZE = 128;
@@ -469,10 +482,24 @@ int query_1() {
             (struct sockaddr *)&peerAddr, &peerAddrLen);
         if (rc > 0) {
 
+            prettyHexDump(readBuffer, rc, cout);
+
+            /*
+            // Dump full packet for unit tests
+            cout << "static const uint8_t PACKET[] = {";
+            for (unsigned i = 0; i < (unsigned)rc; i++) {
+                if (i > 0)
+                    cout << ", ";
+                char buf[32];
+                snprintf(buf, 32, "0x%02x", (int)readBuffer[i]);
+                cout << buf;
+            }
+            cout << "};" << endl;
+            */
+
             // Skip all of the questions
             int answerStart = skipQuestions(readBuffer, rc);
             // Parse the answer
-            prettyHexDump(readBuffer + answerStart, rc - answerStart, cout);
             /*
             uint16_t pri, weight, port;
             char srvHost[65];
@@ -499,5 +526,6 @@ int query_1() {
 
 int main(int, const char**) {
     unit_tests_1();
+    unit_tests_2();
     query_1();
 }
