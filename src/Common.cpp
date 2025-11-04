@@ -279,7 +279,7 @@ void pack_uint16_be(uint16_t v, uint8_t* out) {
 }
 
 uint32_t unpack_uint32_be(const uint8_t* in) {
-    return (in[0] << 24) | (in[1] << 16) | (in[2] << 8) | in[1];
+    return (in[0] << 24) | (in[1] << 16) | (in[2] << 8) | in[3];
 }
 
 uint16_t unpack_uint16_be(const uint8_t* in) {
