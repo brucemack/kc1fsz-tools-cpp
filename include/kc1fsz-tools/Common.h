@@ -117,6 +117,9 @@ void pack_uint16_be(uint16_t v, uint8_t* out);
 uint32_t unpack_uint32_be(const uint8_t* in);
 uint16_t unpack_uint16_be(const uint8_t* in);
 
+void pack_int16_le(int16_t v, uint8_t* out);
+int16_t unpack_int16_le(const uint8_t* out);
+
 }
 
 #endif

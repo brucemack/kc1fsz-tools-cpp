@@ -278,6 +278,11 @@ void pack_uint16_be(uint16_t v, uint8_t* out) {
     out[1] = (v >>  0) & 0xff;
 }
 
+void pack_int16_le(int16_t v, uint8_t* out) {
+    out[0] = (v >>  0) & 0xff;
+    out[1] = (v >>  8) & 0xff;
+}
+
 uint32_t unpack_uint32_be(const uint8_t* in) {
     return (in[0] << 24) | (in[1] << 16) | (in[2] << 8) | in[3];
 }
@@ -286,6 +291,9 @@ uint16_t unpack_uint16_be(const uint8_t* in) {
     return (in[0] << 8) | in[1];
 }
 
+int16_t unpack_int16_le(const uint8_t* in) {
+    return (in[1] << 8) | in[0];
+}
 
 }
 
