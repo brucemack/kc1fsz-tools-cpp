@@ -26,9 +26,9 @@ namespace kc1fsz {
 class LinuxPollTimer {
 public:
 
-    LinuxPollTimer(uint32_t us);
+    LinuxPollTimer(uint64_t intervalUs);
 
-    virtual void setIntervalUs(uint32_t us);
+    virtual void setIntervalUs(uint32_t intervalUs);
 
     /**
      * Starts the interval again. This is used for 
@@ -36,6 +36,11 @@ public:
      * explicitly on each interval.
      */
     virtual void reset();
+
+    /**
+     * @returns The number of microseconds remaining in the interval.
+     */
+    virtual uint64_t usLeftInInterval() const;
 
     /**
      * @return true if the interval has expired.  Will only return 

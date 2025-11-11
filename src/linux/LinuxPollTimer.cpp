@@ -27,7 +27,7 @@ using namespace std;
 
 namespace kc1fsz {
 
-LinuxPollTimer::LinuxPollTimer(uint32_t us) {
+LinuxPollTimer::LinuxPollTimer(uint64_t us) {
     setIntervalUs(us);
 }
 
@@ -51,9 +51,16 @@ void LinuxPollTimer::reset() {
     _nextPointUs = _startPointUs + _intervalUs;    
 }
 
+uint64_t LinuxPollTimer::usLeftInInterval() const {
+    uint64_t now = getTimeUs();
+    if (now < _nextPointUs) 
+        return _nextPointUs - now;
+    else
+        return 0;
+}
+
 bool LinuxPollTimer::poll() {  
     uint64_t now = getTimeUs();
-    //cout << now << " " << _nextPointUs << " " << _intervalUs << endl;
     if (now > _nextPointUs) {
         _nextPointUs += _intervalUs;
         return true;
