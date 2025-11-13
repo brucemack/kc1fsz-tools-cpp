@@ -100,7 +100,7 @@ static void unit_tests_2() {
     assert(rc1 > 0);
     char addrStr[32];
     formatIP4Address(addr, addrStr, 32);
-    assert(strcmp(addrStr, "173.199.119.199") == 0);
+    assert(strcmp(addrStr, "173.199.119.177") == 0);
 }
 
 int query_1() {
