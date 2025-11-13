@@ -31,6 +31,11 @@ public:
     virtual uint32_t time() const = 0;
 
     /**
+     * @returns The canonical microseconds since the epoch.
+     */
+    virtual uint64_t timeUs() const { return time() * 1000; }
+
+    /**
      * @returns true when the current time is past the reference time
      */
     bool isPast(uint32_t ref) const { return time() > ref; }

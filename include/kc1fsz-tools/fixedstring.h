@@ -46,6 +46,15 @@ public:
         _s[0] = 0;
     }
 
+    void append(const char* s) {
+        for (unsigned i = 0; i < strlen(s); i++)
+            append(s[i]);
+    }
+
+    void append(const fixedstring& s) {
+        append(s.c_str());
+    }
+
     void append(char c) { 
         uint32_t l = length();
         if (l < _size - 1) {

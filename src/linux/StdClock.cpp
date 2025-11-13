@@ -26,4 +26,10 @@ uint32_t StdClock::time() const {
     return t1.tv_sec * 1000 + t1.tv_nsec / 1000000;
 }
 
+uint64_t StdClock::timeUs() const {
+    timespec t1;
+    clock_gettime(CLOCK_REALTIME, &t1);
+    return t1.tv_sec * 1000000 + t1.tv_nsec / 1000;
+}
+
 }

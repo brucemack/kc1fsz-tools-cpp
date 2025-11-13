@@ -303,16 +303,9 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
     // and columns.
     bool nonZeroFound = false;
     int16_t powerRow[4], powerCol[4];
-    float p = 0;
     for (unsigned k = 0; k < 4; k++) {
         powerRow[k] = computePower(samples, n, coeffRow[k]);
-        p = sqrt((float)powerRow[k] / 32767.0);
-        //if (p > 0.1)
-        //    printf("Row %d %f\n", k, p);
         powerCol[k] = computePower(samples, n, coeffCol[k]);
-        p = sqrt((float)powerCol[k] / 32767.0);
-        //if (p > 0.01)
-        //    printf("Col %d %f\n", k, p);
         if (powerRow[k] > 0 || powerCol[k] > 0)
             nonZeroFound = true;
     }
