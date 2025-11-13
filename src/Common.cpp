@@ -30,6 +30,8 @@
 #include <arpa/inet.h>
 #endif
 
+#include "kc1fsz-tools/fixedqueue.h"
+#include "kc1fsz-tools/fixedstring.h"
 #include "kc1fsz-tools/Common.h"
 
 namespace kc1fsz {
@@ -264,6 +266,41 @@ uint32_t parseIP4Address(const char* dottedAddr, uint32_t len) {
 #else
     return htonl(result);
 #endif
+}
+
+int tokenize(const char* data, char delim, fixedqueue<fixedstring>& result) {
+    int state = 0;
+    fixedstring accumulator;
+    for (const char* r = data; *r != 0; r++) {
+        // Pre first token
+        if (state == 0) {
+            if (*r == delim) {
+                // Ignore
+            }
+            else {
+                state = 1;
+                accumulator.append(*r);
+            }
+        }
+        else if (state == 1) {
+            if (*r == delim) {
+                if (!result.hasCapacity())
+                    return -1;
+                result.push(accumulator);
+                accumulator.clear();
+                state = 0;
+            }
+            else {
+                accumulator.append(*r);
+            }
+        }
+    }
+    if (!accumulator.empty()) {
+        if (!result.hasCapacity())
+            return -1;
+        result.push(accumulator);
+    }
+    return 0;
 }
 
 void pack_uint32_be(uint32_t v, uint8_t* out) {

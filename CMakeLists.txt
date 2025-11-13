@@ -77,3 +77,14 @@ add_executable(dns-test-1
 
 target_include_directories(dns-test-1 PRIVATE src)
 target_include_directories(dns-test-1 PRIVATE include)
+
+# ------ parse-test-1 ---------------------------------------------------------
+# Target: Host
+
+add_executable(parse-test-1
+  tests/parse-test-1.cpp
+  src/Common.cpp
+) 
+
+target_include_directories(parse-test-1 PRIVATE src)
+target_include_directories(parse-test-1 PRIVATE include)

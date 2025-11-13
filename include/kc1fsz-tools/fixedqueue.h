@@ -1,0 +1,89 @@
+/**
+ * Copyright (C) 2025, Bruce MacKinnon KC1FSZ
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+#ifndef _fixedqueue_h
+#define _fixedqueue_h
+
+#include <cassert>
+
+namespace kc1fsz {
+
+/**
+ * A queue structure that stores its members in a fixed
+ * user-provided structure. No heap allocations are used.
+ */
+template <typename T> class fixedqueue {
+public:
+
+    fixedqueue(T* store, unsigned maxSize) 
+    :   _data(store), 
+        MAX_SIZE(maxSize) {
+    }
+
+    bool isEmpty() const { return _size == 0; }
+    unsigned size() const { return _size; }
+    bool hasCapacity() const { return _size < MAX_SIZE; }
+
+    /**
+     * Pushes on the back
+     */
+    void push(const T& t) {
+        if (_size == MAX_SIZE) 
+            assert(false);
+        _data[_size++] = t;
+    }
+
+    /**
+     * Pops from the front
+     */
+    void pop() {
+        remove(0);
+    }
+
+    /** 
+     * Removes an arbitrary item
+     */
+    void remove(unsigned pos) {
+        assert(pos < _size);
+        if (pos < _size - 1) {
+            // Shift left
+            for (unsigned i = pos; i < _size - 1; i++)
+                _data[i] = _data[i + 1];
+        }
+        _size--;
+    }
+
+    const T& first() const { return _data[0]; }
+    
+    const T& at(unsigned pos) const { 
+        assert(pos < _size);
+        return _data[pos];
+    }
+
+    void clear() {
+        _size = 0;
+    }
+
+private:
+
+    T* _data;
+    const unsigned MAX_SIZE;
+    unsigned _size = 0;
+};
+
+}
+
+#endif

@@ -16,13 +16,17 @@
  *
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
-#ifndef _KC1FSZCommon_h
-#define _KC1FSZCommon_h
+#pragma once
+//#ifndef _KC1FSZCommon_h
+//#define _KC1FSZCommon_h
 
 #include <cstdint>
 #include <iostream>
 
 namespace kc1fsz {
+
+template<class T> class fixedqueue;
+class fixedstring;
 
 void prettyHexDump(const uint8_t* data, uint32_t len, std::ostream& out,
     bool color = false);
@@ -110,6 +114,19 @@ void set_epoch_time(uint32_t t);
 
 void format_iso_time(char* buf, uint32_t bufLen);
 
+/**
+ * Splits the given string according to the delimiter character. Leading
+ * or trailing delimiters are ignored. The string doesn't need to start
+ * or end with the delimiter. Repeated delimiters are treated as a single
+ * delimiter.
+ * 
+ * TODO: Make a "strict" version that doesn't collapse repeated delimiters.
+ * 
+ * @returns 0 on success, -1 on failure (i.e. out of capacity on fixed
+ * resources)
+ */
+int tokenize(const char* data, char delim, fixedqueue<fixedstring>& result);
+
 // ------ Pack/Unpack Multibyte Numbers ------
 
 void pack_uint32_be(uint32_t v, uint8_t* out);
@@ -119,4 +136,4 @@ uint16_t unpack_uint16_be(const uint8_t* in);
 
 }
 
-#endif
+//#endif
