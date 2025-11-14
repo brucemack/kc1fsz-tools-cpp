@@ -56,12 +56,33 @@ void test_2() {
     assert(!list.empty());
     assert(list.size() == 3);
     assert(list.hasCapacity());
+    assert(list.first() == 1);
 
-    list.visitAll([](const int& a) {
+    int count = 0;
+    list.visitAll([&count](const int& a) {
             cout << "Visited " << a << endl;
+            count++;
             return true;
         }
     );   
+    assert(count == 3);
+
+    // Selective visit
+    count = 0;
+    list.visitAll(
+        [&count](const int& a) {
+            cout << "Visited " << a << endl;
+            count++;
+            return true;
+        },
+        [](const int& a) {
+            if (a == 4)
+                return true;
+            else    
+                return false;
+        }
+    );   
+    assert(count == 1);
 
     // Stress test
     assert(list.insert(3));
@@ -74,30 +95,33 @@ void test_2() {
     assert(!list.hasCapacity());
 
     // Remove things selectively
-    list.visitIfAndRemove([](const int& a) {
+    list.visitIfAndRemove(
+        [](const int& a) {
+            return true;
+        },
+        [](const int& a) {
             if (a == 3)
                 return true;
             else    
                 return false;
-        },
-        [](const int& a) {
-            return true;
-        }        
+        }
     );
     assert(list.size() == 3);
 
     // Special case - remove first thing
-    list.visitIfAndRemove([](const int& a) {
+    list.visitIfAndRemove(
+        [](const int& a) {
+            return true;
+        },
+        [](const int& a) {
             if (a == 1)
                 return true;
             else    
                 return false;
-        },
-        [](const int& a) {
-            return true;
-        }        
+        }
     );
     assert(list.size() == 2);
+    assert(list.first() == 2);
 }
 
 int main(int,const char**) {

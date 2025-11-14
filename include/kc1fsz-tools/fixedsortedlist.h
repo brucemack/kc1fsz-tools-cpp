@@ -1,3 +1,19 @@
+/**
+ * Copyright (C) 2025, Bruce MacKinnon KC1FSZ
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 #pragma once
 
 #include <cassert>
@@ -15,6 +31,8 @@ template <typename T> class fixedsortedlist {
 public:
 
     /**
+     * @param ptrSpace An array of spaceSize length that is used to store
+     * the "next pointer" for the linked list.
      * @param comparator. Should return -1 if a < b, 0 if a == b, and 1 if a > b.
      */
     fixedsortedlist(T* objSpace, unsigned* ptrSpace, unsigned spaceSize,
@@ -28,6 +46,9 @@ public:
         clear();
     }
 
+    /**
+     * Removes all items from list
+     */
     void clear() {
         _firstPtr = -1;
         _freePtr = 0;
@@ -38,7 +59,14 @@ public:
     }
 
     bool empty() const { return _firstPtr == -1; }
+
     bool hasCapacity() const { return _freePtr != -1; }
+
+    /**
+     * WARNING: THIS WILL FAIL IF THE LIST IS EMPTY. USE WITH 
+     * CAUTION!
+     */
+    const T& first() const { return _objSpace[_firstPtr]; }
 
     /**
      * Not fast, so use empty() if that's the goal.
@@ -52,14 +80,17 @@ public:
 
     /**
      * Walks across the items while the visitor says to keep going.
+     * @param predicate If specified, allows selective visitation.
      */
-    void visitAll(std::function<bool(const T&)> visitor) const {
+    void visitAll(std::function<bool(const T&)> visitor,
+        std::function<bool(const T&)> predicate = nullptr) const {
 
         int slot = _firstPtr;
         bool keepGoing = true;
 
         while (slot != -1 && keepGoing) {
-            keepGoing = visitor(_objSpace[slot]);
+            if (predicate == nullptr || predicate(_objSpace[slot]))
+                keepGoing = visitor(_objSpace[slot]);
             slot = _ptrSpace[slot];
         }
     }
@@ -69,8 +100,8 @@ public:
      * satisfies the predicate while the visitor says keep going. 
      * After successful visitation the item is removed from the list.
      */
-    void visitIfAndRemove(std::function<bool(const T&)> predicate,
-        std::function<bool(const T&)> visitor) {
+    void visitIfAndRemove(std::function<bool(const T&)> visitor,
+        std::function<bool(const T&)> predicate) {
         
         int previousSlot = -1; 
         int slot = _firstPtr;
@@ -168,4 +199,3 @@ private:
 };
 
 }
-
