@@ -8,11 +8,17 @@ using namespace std;
 
 namespace kc1fsz {
 
+/**
+ * A sorted list that works from fixed storage. NO DYNAMIC MEMORY IS USED.
+ */
 template <typename T> class fixedsortedlist {
 public:
 
+    /**
+     * @param comparator. Should return -1 if a < b, 0 if a == b, and 1 if a > b.
+     */
     fixedsortedlist(T* objSpace, unsigned* ptrSpace, unsigned spaceSize,
-        std::function<int(const T&, const T&)> comparator) 
+        std::function<int(const T& a, const T& b)> comparator) 
     :   _objSpace(objSpace), 
         _ptrSpace(ptrSpace),
         _spaceSize(spaceSize),
@@ -32,6 +38,7 @@ public:
     }
 
     bool empty() const { return _firstPtr == -1; }
+    bool hasCapacity() const { return _freePtr != -1; }
 
     /**
      * Not fast, so use empty() if that's the goal.
@@ -62,7 +69,7 @@ public:
      * satisfies the predicate while the visitor says keep going. 
      * After successful visitation the item is removed from the list.
      */
-    void visitAndRemove(std::function<bool(const T&)> predicate,
+    void visitIfAndRemove(std::function<bool(const T&)> predicate,
         std::function<bool(const T&)> visitor) {
         
         int previousSlot = -1; 
@@ -97,6 +104,10 @@ public:
         }
     }
 
+    /**
+     * Inserts an item at the right place (sequentially) in the list.
+     * @returns true on success, false if max capacity has been reached.
+     */
     bool insert(T proposedObj) {
         // All full?
         if (_freePtr == -1)

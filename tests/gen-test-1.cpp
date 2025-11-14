@@ -52,15 +52,52 @@ void test_2() {
     
     list.insert(2);
     list.insert(1);
-    list.insert(3);
+    list.insert(4);
     assert(!list.empty());
     assert(list.size() == 3);
+    assert(list.hasCapacity());
 
     list.visitAll([](const int& a) {
             cout << "Visited " << a << endl;
             return true;
         }
     );   
+
+    // Stress test
+    assert(list.insert(3));
+    assert(list.size() == 4);
+    assert(!list.hasCapacity());
+
+    // No more room
+    assert(!list.insert(5));
+    assert(list.size() == 4);
+    assert(!list.hasCapacity());
+
+    // Remove things selectively
+    list.visitIfAndRemove([](const int& a) {
+            if (a == 3)
+                return true;
+            else    
+                return false;
+        },
+        [](const int& a) {
+            return true;
+        }        
+    );
+    assert(list.size() == 3);
+
+    // Special case - remove first thing
+    list.visitIfAndRemove([](const int& a) {
+            if (a == 1)
+                return true;
+            else    
+                return false;
+        },
+        [](const int& a) {
+            return true;
+        }        
+    );
+    assert(list.size() == 2);
 }
 
 int main(int,const char**) {
