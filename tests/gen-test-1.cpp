@@ -1,11 +1,15 @@
 #include <cassert>
+#include <iostream>
+
 #include "kc1fsz-tools/Common.h"
 #include "kc1fsz-tools/fixedqueue.h"
 #include "kc1fsz-tools/fixedstring.h"
+#include "kc1fsz-tools/fixedsortedlist.h"
 
+using namespace std;
 using namespace kc1fsz;
 
-int main(int,const char**) {
+void test_1() {
     {
         const char* test0 = "this is a test";
         fixedstring c0[4];
@@ -28,5 +32,38 @@ int main(int,const char**) {
         fixedqueue<fixedstring> q0(c0, 3);
         assert(tokenize(test0, ' ', q0) == -1);
     }
-    return 0;
+}
+
+void test_2() {
+
+    int objSpace[4];
+    unsigned ptrSpace[4];
+    fixedsortedlist<int> list(objSpace, ptrSpace, 4,
+        [](const int& a, const int& b) {
+            if (a < b) {
+                return -1;
+            } else if (a > b) {
+                return 1;
+            } else {
+                return 0;
+            }
+        }
+    );
+    
+    list.insert(2);
+    list.insert(1);
+    list.insert(3);
+    assert(!list.empty());
+    assert(list.size() == 3);
+
+    list.visitAll([](const int& a) {
+            cout << "Visited " << a << endl;
+            return true;
+        }
+    );   
+}
+
+int main(int,const char**) {
+    test_1();
+    test_2();
 }
