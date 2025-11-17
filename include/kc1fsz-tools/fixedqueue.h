@@ -106,6 +106,17 @@ public:
                 keepGoing = visitor(at(i));
     }
 
+    /**
+     * Counter with predicate
+     */
+    unsigned countIf(std::function<bool(const T&)> predicate) {
+        unsigned result = 0;;
+        for (unsigned i = 0; i < size(); i++)
+            if (predicate(at(i)))
+                result++;
+        return result;
+    }
+
     const T& first() const { return _data[0]; }
     
     const T& at(unsigned pos) const { 
