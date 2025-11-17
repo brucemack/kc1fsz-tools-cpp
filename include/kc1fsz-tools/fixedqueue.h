@@ -18,6 +18,7 @@
 #define _fixedqueue_h
 
 #include <cassert>
+#include <functional>
 
 namespace kc1fsz {
 
@@ -33,7 +34,8 @@ public:
         MAX_SIZE(maxSize) {
     }
 
-    bool isEmpty() const { return _size == 0; }
+    bool empty() const { return _size == 0; }
+    bool isEmpty() const { return empty(); }
     unsigned size() const { return _size; }
     bool hasCapacity() const { return _size < MAX_SIZE; }
 
@@ -64,6 +66,29 @@ public:
                 _data[i] = _data[i + 1];
         }
         _size--;
+    }
+
+    /**
+     * Remove all items for which the predicate is true.
+     */
+    void removeIf(std::function<bool(const T&)> predicate) {
+        unsigned pos = 0;
+        while (pos < size()) {
+            if (predicate(at(pos))) 
+                remove(pos);
+            else
+                pos++;
+        }
+    }
+
+    /**
+     * Visitor with predicate
+     */
+    void visitIf(std::function<bool(const T&)> visitor,
+        std::function<bool(const T&)> predicate) {
+        for (unsigned i = 0; i < size(); i++)
+            if (predicate(at(i)))
+                visitor(at(i))
     }
 
     const T& first() const { return _data[0]; }
