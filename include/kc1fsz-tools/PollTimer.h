@@ -37,7 +37,7 @@ public:
     /**
      * @returns The number of microseconds remaining in the current interval.
      */
-    virtual uint32_t usLeftInInterval() const;
+    virtual uint32_t usLeftInInterval() const = 0;
 
     /**
      * @returns true if the current interval has expired.  Will only return 

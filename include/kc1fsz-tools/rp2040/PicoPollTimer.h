@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2024, Bruce MacKinnon KC1FSZ
+ * Copyright (C) 2025, Bruce MacKinnon KC1FSZ
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,13 +13,13 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
- * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
-#ifndef _PicoPollTimer_h
-#define _PicoPollTimer_h
+#pragma once
+
+#include <cassert>
 
 #include "pico/time.h"
+
 #include "kc1fsz-tools/PollTimer.h"
 
 namespace kc1fsz {
@@ -33,6 +33,10 @@ public:
     void reset();
     bool poll(); 
 
+    // #### TODO NOT IMPLEMENTED
+    uint64_t getCurrentIntervalUs() const { assert(false); return 0; }
+    uint32_t usLeftInInterval() const { assert(false); return 0; }
+
 private:
 
     uint32_t _intervalUs;
@@ -40,5 +44,3 @@ private:
 };
 
 }
-
-#endif
