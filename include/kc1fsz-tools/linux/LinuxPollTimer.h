@@ -16,8 +16,7 @@
  *
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
-#ifndef _LinuxPollTimer_h
-#define _LinuxPollTimer_h
+#pragma once
 
 #include <cstdint>
 
@@ -43,18 +42,25 @@ public:
     virtual uint64_t usLeftInInterval() const;
 
     /**
-     * @return true if the interval has expired.  Will only return 
-     *  true once per interval.
-    */
+     * @returns true if the current interval has expired.  Will only return 
+     * true exactly once per interval. Note that this means that 
+     * polls may "queue up" if you are slow calling this. For example,
+     * if the interval is set to 10 us and you wait 20us before calling
+     * poll() you will get a few expirations in quick succession while
+     * the timer catches up.
+     */
     virtual bool poll();
+
+    /**
+     * @returns The start time of the current interval in microseconds.
+     * This will be updated AFTER the poll() call is made.
+     */
+    virtual uint64_t getCurrentIntervalUs() const;
 
 private:
 
     uint64_t _intervalUs = 0;
-    uint64_t _startPointUs = 0;
-    uint64_t _nextPointUs = 0;
+    uint64_t _lastPointUs = 0;
 };
 
 }
-
-#endif

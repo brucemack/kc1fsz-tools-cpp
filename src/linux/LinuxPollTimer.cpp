@@ -27,15 +27,6 @@ using namespace std;
 
 namespace kc1fsz {
 
-LinuxPollTimer::LinuxPollTimer(uint64_t us) {
-    setIntervalUs(us);
-}
-
-void LinuxPollTimer::setIntervalUs(uint32_t us) {   
-    _intervalUs = us;
-    reset();
-}
-
 static uint64_t getTimeUs() {    
     struct timespec ts;
     if (clock_gettime(CLOCK_REALTIME, &ts) != -1) {
@@ -46,27 +37,49 @@ static uint64_t getTimeUs() {
     }
 }
 
+LinuxPollTimer::LinuxPollTimer(uint64_t us) {
+    setIntervalUs(us);
+}
+
+void LinuxPollTimer::setIntervalUs(uint32_t us) {   
+    _intervalUs = us;
+    reset();
+}
+
 void LinuxPollTimer::reset() {    
-    _startPointUs = getTimeUs();
-    _nextPointUs = _startPointUs + _intervalUs;    
+    _lastPointUs = getTimeUs();
+    // Round off the start time using the interval size. So if the 
+    // interval is 20,000 uS all intervals will be on an even 
+    // 20,000 uS boundary.
+    _lastPointUs /= _intervalUs;
+    _lastPointUs *= _intervalUs;
 }
 
 uint64_t LinuxPollTimer::usLeftInInterval() const {
     uint64_t now = getTimeUs();
-    if (now < _nextPointUs) 
-        return _nextPointUs - now;
+    uint64_t nextPointUs = _lastPointUs + _intervalUs;
+    if (now < nextPointUs) 
+        return nextPointUs - now;
     else
         return 0;
 }
 
 bool LinuxPollTimer::poll() {  
     uint64_t now = getTimeUs();
-    if (now > _nextPointUs) {
-        _nextPointUs += _intervalUs;
+    uint64_t nextPointUs = _lastPointUs + _intervalUs;
+    // When we pass the point move forward ONE interval. Note
+    // that there is no guarantee that the next point will be
+    // in the future (particularly if we've fallen behind).
+    if (now >= nextPointUs) {
+        _lastPointUs += _intervalUs;
         return true;
     } else {
         return false;  
     }
+}
+
+uint64_t LinuxPollTimer::getCurrentIntervalUs() const {
+    return _lastPointUs;
 }
 
 }

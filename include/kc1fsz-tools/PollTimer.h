@@ -16,8 +16,7 @@
  *
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
-#ifndef _PollTimer_h
-#define _PollTimer_h
+#pragma once
 
 #include <cstdint>
 
@@ -36,17 +35,28 @@ public:
     virtual void reset() { }
 
     /**
-     * @returns The number of microseconds remaining in the interval.
+     * @returns The number of microseconds remaining in the current interval.
      */
     virtual uint32_t usLeftInInterval() const;
 
     /**
-     * @return true if the interval has expired.  Will only return 
-     *  true once per interval.
-    */
+     * @returns true if the current interval has expired.  Will only return 
+     * true exactly once per interval. Note that this means that 
+     * polls may "queue up" if you are slow calling this. For example,
+     * if the interval is set to 10 us and you wait 20us before calling
+     * poll() you will get a few expirations in quick succession while
+     * the timer catches up.
+     */
     virtual bool poll() = 0;
+
+    /**
+     * @returns The start time of the current interval in microseconds.
+     * This will be return the time applicable for when the LAST time
+     * poll() return true. The time will stay constant until the next
+     * time that poll() returns true.
+     */
+    virtual uint64_t getCurrentIntervalUs() const = 0;
 };
 
 }
 
-#endif
