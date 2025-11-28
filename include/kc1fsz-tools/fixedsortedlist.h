@@ -62,11 +62,23 @@ public:
 
     bool hasCapacity() const { return _freePtr != -1; }
 
+    const T& first() const { return _objSpace[_firstPtr]; }
+
     /**
+     * Returns the first item, and removes it.
+     * 
      * WARNING: THIS WILL FAIL IF THE LIST IS EMPTY. USE WITH 
      * CAUTION!
      */
-    const T& first() const { return _objSpace[_firstPtr]; }
+    T pop() {
+        T result = first();
+        // Remove the first item from the list
+        _firstPtr = _ptrSpace[_firstPtr];
+        // Link the first item back into the free list
+        _ptrSpace[_firstPtr] = _freePtr;
+        _freePtr = _firstPtr;
+        return result;
+    }
 
     /**
      * Not fast, so use empty() if that's the goal.
