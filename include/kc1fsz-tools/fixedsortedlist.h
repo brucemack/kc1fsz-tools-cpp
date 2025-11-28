@@ -73,10 +73,11 @@ public:
     T pop() {
         T result = first();
         // Remove the first item from the list
+        int oldFirst = _firstPtr;
         _firstPtr = _ptrSpace[_firstPtr];
-        // Link the first item back into the free list
-        _ptrSpace[_firstPtr] = _freePtr;
-        _freePtr = _firstPtr;
+        // Link the old first item back into the free list
+        _ptrSpace[oldFirst] = _freePtr;
+        _freePtr = oldFirst;
         return result;
     }
 
