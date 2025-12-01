@@ -22,10 +22,12 @@
 
 namespace kc1fsz {
 
-class LinuxPollTimer {
+class Clock;
+
+class StdPollTimer {
 public:
 
-    LinuxPollTimer(uint64_t intervalUs);
+    StdPollTimer(Clock& clock, uint64_t intervalUs);
 
     virtual void setIntervalUs(uint32_t intervalUs);
 
@@ -59,6 +61,7 @@ public:
 
 private:
 
+    Clock& _clock;
     uint64_t _intervalUs = 0;
     uint64_t _lastPointUs = 0;
 };

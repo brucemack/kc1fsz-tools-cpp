@@ -16,7 +16,8 @@
  *
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
 */
-#include "kc1fsz-tools/linux/LinuxPollTimer.h"
+#include "kc1fsz-tools/Clock.h"
+#include "kc1fsz-tools/StdPollTimer.h"
 
 #include <cstdint>
 #include <ctime>
@@ -27,27 +28,18 @@ using namespace std;
 
 namespace kc1fsz {
 
-static uint64_t getTimeUs() {    
-    struct timespec ts;
-    if (clock_gettime(CLOCK_REALTIME, &ts) != -1) {
-        return (ts.tv_sec * 1000000L) + (ts.tv_nsec / 1000L);
-    } else {
-        assert(false);
-        return 0;
-    }
-}
-
-LinuxPollTimer::LinuxPollTimer(uint64_t us) {
+StdPollTimer::StdPollTimer(Clock& clock, uint64_t us) 
+:   _clock(clock) {
     setIntervalUs(us);
 }
 
-void LinuxPollTimer::setIntervalUs(uint32_t us) {   
+void StdPollTimer::setIntervalUs(uint32_t us) {   
     _intervalUs = us;
     reset();
 }
 
-void LinuxPollTimer::reset() {    
-    _lastPointUs = getTimeUs();
+void StdPollTimer::reset() {    
+    _lastPointUs = _clock.timeUs();
     // Round off the start time using the interval size. So if the 
     // interval is 20,000 uS all intervals will be on an even 
     // 20,000 uS boundary.
@@ -55,8 +47,8 @@ void LinuxPollTimer::reset() {
     _lastPointUs *= _intervalUs;
 }
 
-uint64_t LinuxPollTimer::usLeftInInterval() const {
-    uint64_t now = getTimeUs();
+uint64_t StdPollTimer::usLeftInInterval() const {
+    uint64_t now = _clock.timeUs();
     uint64_t nextPointUs = _lastPointUs + _intervalUs;
     if (now < nextPointUs) 
         return nextPointUs - now;
@@ -64,8 +56,8 @@ uint64_t LinuxPollTimer::usLeftInInterval() const {
         return 0;
 }
 
-bool LinuxPollTimer::poll() {  
-    uint64_t now = getTimeUs();
+bool StdPollTimer::poll() {  
+    uint64_t now = _clock.timeUs();
     uint64_t nextPointUs = _lastPointUs + _intervalUs;
     // When we pass the point move forward ONE interval. Note
     // that there is no guarantee that the next point will be
@@ -78,7 +70,7 @@ bool LinuxPollTimer::poll() {
     }
 }
 
-uint64_t LinuxPollTimer::getCurrentIntervalUs() const {
+uint64_t StdPollTimer::getCurrentIntervalUs() const {
     return _lastPointUs;
 }
 

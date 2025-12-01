@@ -68,6 +68,20 @@ public:
         _size--;
     }
 
+    void visitAndRemoveIf(std::function<bool(const T&)> visitor,
+        std::function<bool(const T&)> predicate) {
+        unsigned pos = 0;
+        bool keepGoing = true;
+        while (pos < size() && keepGoing) {
+            if (predicate(at(pos))) {
+                keepGoing = visitor(at(pos));
+                remove(pos);
+            }
+            else
+                pos++;
+        }
+    }
+
     /**
      * Remove all items for which the predicate is true.
      */
@@ -86,9 +100,21 @@ public:
      */
     void visitIf(std::function<bool(const T&)> visitor,
         std::function<bool(const T&)> predicate) {
+        bool keepGoing = true;
+        for (unsigned i = 0; i < size() && keepGoing; i++)
+            if (predicate(at(i)))
+                keepGoing = visitor(at(i));
+    }
+
+    /**
+     * Counter with predicate
+     */
+    unsigned countIf(std::function<bool(const T&)> predicate) {
+        unsigned result = 0;;
         for (unsigned i = 0; i < size(); i++)
             if (predicate(at(i)))
-                visitor(at(i))
+                result++;
+        return result;
     }
 
     const T& first() const { return _data[0]; }
