@@ -24,6 +24,7 @@
 
 #ifndef PICO_BUILD
 #include <time.h>       /* time_t, struct tm, time, localtime, strftime */
+#include <sys/time.h> // For gettimeofday
 #else 
 #include "pico/time.h"
 #endif
@@ -120,10 +121,15 @@ protected:
             sprintf(buf, "%06u:%02u.%03u", s / 60, s % 60, ms % 1000);
         }
 #else
+        struct timeval tv;
+        gettimeofday(&tv, 0);
         time_t rawtime;
         time (&rawtime);
-        struct tm * timeinfo = localtime(&rawtime);
-        strftime (buf, len, "%T", timeinfo);
+        struct tm* timeinfo = localtime(&rawtime);
+        long mil = tv.tv_usec / 1000;
+        char temp[32];
+        strftime (temp, 32, "%m-%d %T", timeinfo);
+        snprintf(buf, len, "%s.%03ld", temp, mil);
 #endif
     }
 
