@@ -99,7 +99,7 @@ public:
      * Visitor with predicate
      */
     void visitIf(std::function<bool(const T&)> visitor,
-        std::function<bool(const T&)> predicate) {
+        std::function<bool(const T&)> predicate) const {
         bool keepGoing = true;
         for (unsigned i = 0; i < size() && keepGoing; i++)
             if (predicate(at(i)))
