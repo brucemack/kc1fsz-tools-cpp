@@ -19,6 +19,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <cstdio>
 
 #include "kc1fsz-tools/NetUtils.h"
 
@@ -39,6 +40,20 @@ void formatIPAddr(const sockaddr& addr, char* ipStr, unsigned len) {
     else if (addr.sa_family == AF_INET6)
         inet_ntop(addr.sa_family, &((sockaddr_in6*)&addr)->sin6_addr, ipStr, 32);
     else
+        assert(false);
+}
+
+void formatIPAddrAndPort(const sockaddr& addr, char* str, unsigned len) {
+    char addrArea[32];
+    if (addr.sa_family == AF_INET) {
+        inet_ntop(addr.sa_family, &((sockaddr_in*)&addr)->sin_addr, addrArea, 32);
+        snprintf(str, len, "%s:%d", addrArea, 
+            (int)ntohs(((sockaddr_in&)addr).sin_port));
+    } else if (addr.sa_family == AF_INET6) {
+        inet_ntop(addr.sa_family, &((sockaddr_in6*)&addr)->sin6_addr, addrArea, 32);
+        snprintf(str, len, "[%s]:%d", addrArea, 
+            (int)ntohs(((sockaddr_in6&)addr).sin6_port));            
+    } else
         assert(false);
 }
 

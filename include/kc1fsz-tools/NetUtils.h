@@ -28,7 +28,12 @@ short getIPAddrFamily(const char* addr);
 /**
  * Converts an IP address to a string. Works for IPv4 and IPv6.
  */
-void formatIPAddr(const sockaddr& addr, char* ipStr, unsigned len);
+void formatIPAddr(const sockaddr& addr, char* str, unsigned len);
+
+/**
+ * Converts an IP address:port combination to a string. Works for IPv4 and IPv6.
+ */
+void formatIPAddrAndPort(const sockaddr& addr, char* str, unsigned len);
 
 /**
  * Converts an IP address in string format. Works for IPv4 and IPv6.
