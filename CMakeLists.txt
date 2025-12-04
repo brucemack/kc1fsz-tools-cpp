@@ -73,6 +73,7 @@ add_executable(dns-test-1
   tests/dns-test-1.cpp
   src/Common.cpp
   src/MicroDNS.cpp
+  src/NetUtils.cpp
 ) 
 
 target_include_directories(dns-test-1 PRIVATE src)

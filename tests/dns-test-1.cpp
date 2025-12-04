@@ -12,6 +12,7 @@
 
 #include "kc1fsz-tools/Common.h"
 #include "kc1fsz-tools/MicroDNS.h"
+#include "kc1fsz-tools/NetUtils.h"
 
 using namespace std;
 using namespace kc1fsz;
