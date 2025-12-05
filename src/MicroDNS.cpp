@@ -31,9 +31,11 @@ int makeDNSHeader(uint16_t id, uint8_t* packet, unsigned packetSize) {
     if (packetSize < 12)
         return -1;
     // Make the header
+    // This is the unique request ID
     pack_uint16_be(id, packet);
     uint16_t work;
-    // QR = 0, RD=1
+    // QR=0b0 (query), OPCODE=0b0000, AA=x, TC=0b0, RD=0b1 (recursion desired)
+    // RA=0bx (recursion available), Z=0b000, RCODE=0b0000 
     work = 0x0100;
     pack_uint16_be(work, packet + 2);
     // QDCOUNT=1
@@ -196,26 +198,62 @@ int skipQuestions(const uint8_t* packet, unsigned packetLen) {
     return i;
 }
 
+/*
+Got this at Tatte - possibly an SOA record (type 0x0006)
+
+ID=0x0001
+QR=1, AA=0, RD=1, RA=1, RCODE=0000
+
+0000 | 00 01 81 80 00 01 00 00  00 01 00 00 04 5f 69 61  ········ ·····_ia
+0010 | 78 04 5f 75 64 70 05 35  35 35 35 33 05 6e 6f 64  x·_udp·5 5553·nod
+0020 | 65 73 0b 61 6c 6c 73 74  61 72 6c 69 6e 6b 03 6f  es·allst arlink·o
+0030 | 72 67 00 [00 21] [00 01] [c0  1c] [00 06] 00 01 00 00 00  rg··!··· ········
+0040 | 3c 00 48 06 6e 73 2d 38  36 38 09 61 77 73 64 6e  <·H·ns-8 68·awsdn
+0050 | 73 2d 34 34 03 6e 65 74  00 11 61 77 73 64 6e 73  s-44·net ··awsdns
+0060 | 2d 68 6f 73 74 6d 61 73  74 65 72 06 61 6d 61 7a  -hostmas ter·amaz
+0070 | 6f 6e 03 63 6f 6d 00 00  00 00 01 00 00 1c 20 00  on·com·· ········
+0080 | 00 03 84 00 12 75 00 00  01 51 80                 ·····u·· ·Q·
+*/
+
 int parseDNSAnswer_SRV(const uint8_t* packet, unsigned packetLen, 
     uint16_t* pri, uint16_t* weight, uint16_t* port, 
     char* hostname, unsigned hostnameCapacity) {
+
+    if (packetLen < 4)
+        return -1;
+
+    uint16_t id = unpack_uint16_be(packet);
+    uint16_t flags = unpack_uint16_be(packet + 2);
+    // Do some checking on the flags
+    // QR=1
+    if (flags & 0x8000 == 0)
+        return -8;
+    // RCODE=0000
+    if (flags & 0x000f != 0)
+        return -9;
+
     // Skip past the header and all questions 
     int rc0 = skipQuestions(packet, packetLen);
-    if (rc0 < 0)
+    if (rc0 < 0) {
         return rc0;
+    }
     unsigned i = rc0;
     // We just skip the NAME by passing 0s
-    int rc = parseDomainName(packet, packetLen, i, 0, 0);
-    if (rc < 0)
+    char temp[64];
+    int rc = parseDomainName(packet, packetLen, i, temp, 64);
+    if (rc < 0) {
         return rc;
+    }
     i = rc;
     // TYPE
-    if (i + 2 > packetLen)
+    if (i + 2 > packetLen) {
         return -1;
+    }
     uint16_t typeCode = unpack_uint16_be(packet + i);
     i += 2;
-    if (typeCode != 0x0021)
+    if (typeCode != 0x0021) {
         return -3;
+    }
     // CLASS
     if (i + 2 > packetLen)
         return -1;
