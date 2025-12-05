@@ -31,24 +31,29 @@ short getIPAddrFamily(const char* addr);
 void formatIPAddr(const sockaddr& addr, char* str, unsigned len);
 
 /**
+ * @return The size in bytes of the address. Works for IPv4 and IPv6.
+ */
+unsigned getIPAddrSize(const sockaddr& addr);
+
+/**
  * Converts an IP address:port combination to a string. Works for IPv4 and IPv6.
  */
 void formatIPAddrAndPort(const sockaddr& addr, char* str, unsigned len);
 
 /**
+ * @returns true if the addresses are the same (ignores port)
+ */
+bool equalIPAddr(const sockaddr& a0, const sockaddr& a1);
+
+/**
  * Converts an IP address in string format. Works for IPv4 and IPv6.
  */
-void setIPAddr(sockaddr& addr, const char* strAddr);
+void setIPAddr(sockaddr_storage& addr, const char* strAddr);
 
 /**
  * Sets the port part of an address. Works for IPv4 and IPv6.
  * @param port port number in host format
  */
-void setIPPort(sockaddr& addr, int port);
-
-/**
- * @returns true if the addresses are the same (ignores port)
- */
-bool equalIPAddr(const sockaddr& a0, const sockaddr& a1);
+void setIPPort(sockaddr_storage& addr, int port);
 
 }

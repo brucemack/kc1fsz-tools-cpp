@@ -57,21 +57,12 @@ void formatIPAddrAndPort(const sockaddr& addr, char* str, unsigned len) {
         assert(false);
 }
 
-void setIPAddr(sockaddr& addr, const char* strAddr) {
-    if (addr.sa_family == AF_INET)
-        inet_pton(addr.sa_family, strAddr, &((sockaddr_in*)&addr)->sin_addr);
-    else if (addr.sa_family == AF_INET6)
-        inet_pton(addr.sa_family, strAddr, &((sockaddr_in6*)&addr)->sin6_addr);
-    else
-        assert(false);
-}
-
-void setIPPort(sockaddr& addr, int port) {
-    if (addr.sa_family == AF_INET)
-        ((sockaddr_in&)addr).sin_port = htons(port);
-    else if (addr.sa_family == AF_INET6)
-        ((sockaddr_in6&)addr).sin6_port = htons(port);
-    else
+unsigned getIPAddrSize(const sockaddr& addr) {
+    if (addr.sa_family == AF_INET) {
+        return sizeof(sockaddr_in);
+    } else if (addr.sa_family == AF_INET6) {
+        return sizeof(sockaddr_in6);
+    } else
         assert(false);
 }
 
@@ -91,5 +82,24 @@ bool equalIPAddr(const sockaddr& a0, const sockaddr& a1) {
     else
         assert(false);
 }
+
+void setIPAddr(sockaddr_storage& addr, const char* strAddr) {
+    if (addr.ss_family == AF_INET)
+        inet_pton(addr.ss_family, strAddr, &(((sockaddr_in&)addr).sin_addr));
+    else if (addr.ss_family == AF_INET6)
+        inet_pton(addr.ss_family, strAddr, &(((sockaddr_in6&)addr).sin6_addr));
+    else
+        assert(false);
+}
+
+void setIPPort(sockaddr_storage& addr, int port) {
+    if (addr.ss_family == AF_INET)
+        ((sockaddr_in&)addr).sin_port = htons(port);
+    else if (addr.ss_family == AF_INET6)
+        ((sockaddr_in6&)addr).sin6_port = htons(port);
+    else
+        assert(false);
+}
+
 
 }
