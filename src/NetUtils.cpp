@@ -20,8 +20,11 @@
 #include <cassert>
 #include <cstring>
 #include <cstdio>
+#include <iostream>
 
 #include "kc1fsz-tools/NetUtils.h"
+
+using namespace std;
 
 namespace kc1fsz {
 
@@ -44,13 +47,14 @@ void formatIPAddr(const sockaddr& addr, char* ipStr, unsigned len) {
 }
 
 void formatIPAddrAndPort(const sockaddr& addr, char* str, unsigned len) {
-    char addrArea[32];
+    const unsigned maxLen = 65;
+    char addrArea[maxLen];
     if (addr.sa_family == AF_INET) {
-        inet_ntop(addr.sa_family, &((sockaddr_in*)&addr)->sin_addr, addrArea, 32);
+        inet_ntop(addr.sa_family, &((sockaddr_in*)&addr)->sin_addr, addrArea, maxLen);
         snprintf(str, len, "%s:%d", addrArea, 
             (int)ntohs(((sockaddr_in&)addr).sin_port));
     } else if (addr.sa_family == AF_INET6) {
-        inet_ntop(addr.sa_family, &((sockaddr_in6*)&addr)->sin6_addr, addrArea, 32);
+        inet_ntop(addr.sa_family, &((sockaddr_in6&)addr).sin6_addr, addrArea, maxLen);
         snprintf(str, len, "[%s]:%d", addrArea, 
             (int)ntohs(((sockaddr_in6&)addr).sin6_port));            
     } else
@@ -86,8 +90,9 @@ bool equalIPAddr(const sockaddr& a0, const sockaddr& a1) {
 void setIPAddr(sockaddr_storage& addr, const char* strAddr) {
     if (addr.ss_family == AF_INET)
         inet_pton(addr.ss_family, strAddr, &(((sockaddr_in&)addr).sin_addr));
-    else if (addr.ss_family == AF_INET6)
+    else if (addr.ss_family == AF_INET6) {
         inet_pton(addr.ss_family, strAddr, &(((sockaddr_in6&)addr).sin6_addr));
+    }
     else
         assert(false);
 }

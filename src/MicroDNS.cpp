@@ -222,14 +222,14 @@ int parseDNSAnswer_SRV(const uint8_t* packet, unsigned packetLen,
     if (packetLen < 4)
         return -1;
 
-    uint16_t id = unpack_uint16_be(packet);
+    //uint16_t id = unpack_uint16_be(packet);
     uint16_t flags = unpack_uint16_be(packet + 2);
     // Do some checking on the flags
     // QR=1
-    if (flags & 0x8000 == 0)
+    if ((flags & 0x8000) == 0)
         return -8;
     // RCODE=0000
-    if (flags & 0x000f != 0)
+    if ((flags & 0x000f) != 0)
         return -9;
 
     // Skip past the header and all questions 
