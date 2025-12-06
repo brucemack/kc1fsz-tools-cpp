@@ -137,6 +137,15 @@ uint16_t unpack_uint16_be(const uint8_t* in);
 void pack_int16_le(int16_t v, uint8_t* out);
 int16_t unpack_int16_le(const uint8_t* out);
 
-}
+/**
+ * Takes a ASCII hex string and converts to the binary representation. Helpful
+ * for certain crypto use-cases.
+ *
+ * @param hex A string in two-digit hex format w/ no space like "0a0534bf". Length
+ * must be exactly binLen x 2.
+ * @param bin The buffer where the binary data will be written.
+ * @param binLen The length of teh binary buffer.
+ */
+void asciiHexToBin(const char* hex, uint8_t* bin, unsigned binLen);
 
-//#endif
+}

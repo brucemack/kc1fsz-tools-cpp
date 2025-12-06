@@ -332,5 +332,14 @@ int16_t unpack_int16_le(const uint8_t* in) {
     return (in[1] << 8) | in[0];
 }
 
+void asciiHexToBin(const char* hex, uint8_t* bin, unsigned binLen) {
+    const char* p = hex;
+    for (unsigned i = 0; i < binLen; i++, p += 2) {
+        char buf[3] = { *p, *(p + 1), 0 };
+        bin[i] = strtol(buf, 0, 16);
+    }
+}
+
+
 }
 
