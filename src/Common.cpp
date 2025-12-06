@@ -332,7 +332,8 @@ int16_t unpack_int16_le(const uint8_t* in) {
     return (in[1] << 8) | in[0];
 }
 
-void asciiHexToBin(const char* hex, uint8_t* bin, unsigned binLen) {
+void asciiHexToBin(const char* hex, unsigned hexLen, uint8_t* bin, unsigned binLen) {
+    assert(hexLen == 2 * binLen);
     const char* p = hex;
     for (unsigned i = 0; i < binLen; i++, p += 2) {
         char buf[3] = { *p, *(p + 1), 0 };
@@ -340,6 +341,16 @@ void asciiHexToBin(const char* hex, uint8_t* bin, unsigned binLen) {
     }
 }
 
+void binToAsciiHex(const uint8_t* bin, unsigned binLen, char* hex, unsigned hexLen) {
+    assert(hexLen == 2 * binLen);
+    char* p = hex;
+    for (unsigned i = 0; i < binLen; i++, p += 2) {
+        char buf[3];
+        snprintf(buf, 3, "%02X", (unsigned)bin[i]);
+        *p = buf[0];
+        *(p + 1) = buf[1];
+    }
+}
 
 }
 
