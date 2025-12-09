@@ -52,7 +52,7 @@ public:
         char timeBuf[32];
         _fmtTime(timeBuf, 32);
 
-        std::cout << "I: " << timeBuf << " " << buf << std::endl;
+        _out("I: ", timeBuf, buf);
     }
 
     virtual void error(const char* format, ...) {
@@ -67,18 +67,17 @@ public:
         char timeBuf[32];
         _fmtTime(timeBuf, 32);
 
-        std::cout << "E: " << timeBuf << " " << buf << std::endl;
+        _out("E: ", timeBuf, buf);
     }
 
-    virtual void debugDump(const char* msg, 
-        const uint8_t* data, uint32_t dataLen) {
+    virtual void debugDump(const char* msg, const uint8_t* data, uint32_t dataLen) {
         if (!_enabled)
             return;
 
         char timeBuf[32];
         _fmtTime(timeBuf, 32);
 
-        std::cout << "D: " << timeBuf << " " << msg << std::endl;
+        _out("D: ", timeBuf, msg);
         prettyHexDump(data, dataLen, std::cout);
     }
 
@@ -90,14 +89,14 @@ public:
         char timeBuf[32];
         _fmtTime(timeBuf, 32);
 
-        std::cout << "I: " << timeBuf << " " << msg << std::endl;
+        _out("I: ", timeBuf, msg);
         prettyHexDump(data, dataLen, std::cout);
     }
 
     virtual void println(const char* msg) {
         if (!_enabled)
             return;
-        std::cout << msg << std::endl;
+        _out("", "", msg);
     }
 
     /**
@@ -131,6 +130,12 @@ protected:
         strftime (temp, 32, "%m-%d %T", timeinfo);
         snprintf(buf, len, "%s.%03ld", temp, mil);
 #endif
+    }
+
+protected:
+
+    virtual void _out(const char* sev, const char* dt, const char* msg) {
+        std::cout << sev << dt << " " << msg << std::endl;
     }
 
 private:
