@@ -74,4 +74,9 @@ uint64_t StdPollTimer::getCurrentIntervalUs() const {
     return _lastPointUs;
 }
 
+uint64_t StdPollTimer::getLateUs() const {
+    uint64_t now = _clock.timeUs();
+    return now - _lastPointUs;
+}
+
 }

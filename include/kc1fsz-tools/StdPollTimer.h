@@ -59,6 +59,12 @@ public:
      */
     virtual uint64_t getCurrentIntervalUs() const;
 
+    /**
+     * @return The number of us past the last scheduled interval 
+     * expirationation. In other words, how late are we?
+     */
+    virtual uint64_t getLateUs() const;
+
 private:
 
     Clock& _clock;
