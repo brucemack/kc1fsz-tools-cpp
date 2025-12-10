@@ -338,7 +338,7 @@ unsigned int len;
 void MD5Print(unsigned char digest[16]) {
     char text[33];
     MD5DigestToText(digest, text);
-    printf(text);
+    printf("%s", text);
 }
 
 void MD5DigestToText(unsigned char digest[16], char output[33]) {
