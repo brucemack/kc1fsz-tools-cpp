@@ -28,6 +28,57 @@ using namespace std;
 
 namespace kc1fsz {
 
+
+void formatIP4Address(uint32_t addr, char* dottedAddr, uint32_t dottedAddrSize) {
+    // This is the high-order part of the address.
+    uint32_t a = (addr & 0xff000000) >> 24;
+    uint32_t b = (addr & 0x00ff0000) >> 16;
+    uint32_t c = (addr & 0x0000ff00) >> 8;
+    uint32_t d = (addr & 0x000000ff);
+    // BRM 2025-02-01 changed from %lu to resolve warning
+    snprintf(dottedAddr, dottedAddrSize, "%u.%u.%u.%u", a, b, c, d);
+}
+
+uint32_t parseIP4Address(const char* dottedAddr, uint32_t len) {
+    uint32_t result = 0;
+    char acc[8];
+    uint32_t accLen = 0;
+    const char *p = dottedAddr;
+    uint32_t octets = 4;
+
+    // If a limit has been specifed, calculate the stopping point
+    const char* lastChar = 0;
+    if (len != 0) {
+        lastChar = dottedAddr + len - 1;
+    }
+
+    while (true) {
+        if (*p == '.' || *p == 0 || p == lastChar) {
+            acc[accLen] = 0;
+            // Shift up
+            result <<= 8;
+            // Accumulate LSB
+            result |= (uint8_t)atoi(acc);
+            accLen = 0;
+            // Count octets
+            octets++;
+            // Done yet?
+            if (octets == 4 || *p == 0 || p == lastChar) {
+                break;
+            }
+        }
+        else {
+            acc[accLen++] = *p;
+        }
+        p++;
+    }
+#ifdef PICO_BUILD
+    return result;
+#else
+    return htonl(result);
+#endif
+}
+
 short getIPAddrFamily(const char* addr) {
     if (strchr(addr, '.') != 0)
         return AF_INET;
@@ -59,6 +110,94 @@ void formatIPAddrAndPort(const sockaddr& addr, char* str, unsigned len) {
             (int)ntohs(((sockaddr_in6&)addr).sin6_port));            
     } else
         assert(false);
+}
+
+int parseIPAddrAndPort(const char* ap, sockaddr_storage& addr) {
+
+    int state = 0;
+    char addrStr[64];
+    addrStr[0] = 0;
+    char portStr[8];
+    portStr[0] = 0;
+    unsigned p = 0;
+
+    if (ap[0] == '[') {
+        // This is assumed to be an IPv6 address
+        for (unsigned i = 0; i < strlen(ap); i++) {
+            // Hunting for [
+            if (state == 0) {
+                if (ap[i] == '[') {
+                    state = 1;
+                    p = 0;
+                }
+            } 
+            // In address
+            else if (state == 1) {
+                if (ap[i] == ']') {
+                    state = 2;
+                } else if (p < 63) {
+                    addrStr[p++] = ap[i];
+                    addrStr[p] = 0;
+                }
+                else {
+                    return -1;
+                }
+            }
+            else if (state == 2) {
+                if (ap[i] == ':') {
+                    state = 3;
+                    p = 0;
+                }
+                else {
+                    return -3;
+                }
+            }
+            // In port
+            else if (state == 3) {
+                if (p < 7) {
+                    portStr[p++] = ap[i];
+                    portStr[p] = 0;
+                }
+                else {
+                    return -2;
+                }
+            }
+        }
+        addr.ss_family = AF_INET6;
+        setIPAddr(addr, addrStr);
+        setIPPort(addr, atoi(portStr));
+    }
+    else {
+        // This is assumed to be an IPv4 address
+        for (unsigned i = 0; i < strlen(ap); i++) {
+            // In address
+            if (state == 0) {
+                if (ap[i] == ':') {
+                    state = 1;
+                    p = 0;
+                } else if (p < 63) {
+                    addrStr[p++] = ap[i];
+                    addrStr[p] = 0;
+                } else {
+                    return -1;
+                }
+            }
+            // In port
+            else if (state == 1) {
+                if (p < 7) {
+                    portStr[p++] = ap[i];
+                    portStr[p] = 0;
+                } else {
+                    return -2;
+                }
+            }
+        }
+        addr.ss_family = AF_INET;
+        setIPAddr(addr, addrStr);
+        setIPPort(addr, atoi(portStr));
+    }
+
+    return 0;
 }
 
 unsigned getIPAddrSize(const sockaddr& addr) {
@@ -106,5 +245,13 @@ void setIPPort(sockaddr_storage& addr, int port) {
         assert(false);
 }
 
+int getIPPort(const sockaddr& addr) {
+    if (addr.sa_family == AF_INET)
+        return ntohs(((const sockaddr_in&)addr).sin_port);
+    else if (addr.sa_family == AF_INET6)
+        return ntohs(((const sockaddr_in6&)addr).sin6_port);
+    else
+        assert(false);
+}
 
 }

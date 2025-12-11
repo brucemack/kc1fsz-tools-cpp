@@ -21,6 +21,23 @@
 namespace kc1fsz {
 
 /**
+ * Puts the address into a string in decimal-dotted format.
+ *
+ * @param addr IP4 address expressed as a 32-bit integer.  The
+ * assumption is that the endian thing has been sorted out 
+ * before this point and the most-significant bits of the integer
+ * are the left-most parts of the dotted address display.
+ */
+void formatIP4Address(uint32_t addr, char* dottedAddr, uint32_t dottedAddrSize);
+
+/**
+ * Converts the dotted-decimal IP address into a 32-bit integer.
+ * @param len If non-zero, only this many characters are processed. 
+ *   Otherwise, go to the null.
+ */
+uint32_t parseIP4Address(const char* dottedAddr, uint32_t len = 0);
+
+/**
  * @returns AF_INET or AF_INET6 based on the format of the address provided.
  */
 short getIPAddrFamily(const char* addr);
@@ -36,9 +53,24 @@ void formatIPAddr(const sockaddr& addr, char* str, unsigned len);
 unsigned getIPAddrSize(const sockaddr& addr);
 
 /**
- * Converts an IP address:port combination to a string. Works for IPv4 and IPv6.
+ * Converts an IP address and port combination to a string following the 
+ * usual conventions. Works for IPv4 and IPv6:
+ * 
+ * For IPv4: 10.10.10.10:80
+ * For IPv6: [fe80::987e:49de:e95d:90d]:80
  */
 void formatIPAddrAndPort(const sockaddr& addr, char* str, unsigned len);
+
+/**
+ * Parses an IP address and port.  Follows the ususal convetions:
+ * 
+ * For IPv4: 10.10.10.10:80
+ * For IPv6: [fe80::987e:49de:e95d:90d]:80
+ * 
+ * @returns 0 On success, -1 when address is too long, -2 when port 
+ * is too long.
+ */
+int parseIPAddrAndPort(const char* addrAndPort, sockaddr_storage& addr);
 
 /**
  * @returns true if the addresses are the same (ignores port)
@@ -55,5 +87,10 @@ void setIPAddr(sockaddr_storage& addr, const char* strAddr);
  * @param port port number in host format
  */
 void setIPPort(sockaddr_storage& addr, int port);
+
+/**
+ * Gets the port part of an address. Works for IPv4 and IPv6.
+ */
+int getIPPort(const sockaddr& addr);
 
 }

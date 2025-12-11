@@ -17,8 +17,6 @@
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
 #pragma once
-//#ifndef _KC1FSZCommon_h
-//#define _KC1FSZCommon_h
 
 #include <cstdint>
 #include <iostream>
@@ -52,23 +50,6 @@ void memcpyLimited(uint8_t* target, const uint8_t* source,
 bool isNullTerminated(const uint8_t* source, uint32_t sourceLen);
 
 void panic(const char* msg);
-
-/**
- * Puts the address into a string in decimal-dotted format.
- *
- * @param addr IP4 address expressed as a 32-bit integer.  The
- * assumption is that the endian thing has been sorted out 
- * before this point and the most-significant bits of the integer
- * are the left-most parts of the dotted address display.
- */
-void formatIP4Address(uint32_t addr, char* dottedAddr, uint32_t dottedAddrSize);
-
-/**
- * Converts the dotted-decimal IP address into a 32-bit integer.
- * @param len If non-zero, only this many characters are processed. 
- *   Otherwise, go to the null.
- */
-uint32_t parseIP4Address(const char* dottedAddr, uint32_t len = 0);
 
 // ----- Time Related --------------------------------------------------------
 

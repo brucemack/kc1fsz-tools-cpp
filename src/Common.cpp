@@ -218,56 +218,6 @@ void format_iso_time(char* buf, uint32_t bufLen) {
         snprintf(buf + 19, bufLen - 19, ".%03d", ms);
 }
 
-void formatIP4Address(uint32_t addr, char* dottedAddr, uint32_t dottedAddrSize) {
-    // This is the high-order part of the address.
-    uint32_t a = (addr & 0xff000000) >> 24;
-    uint32_t b = (addr & 0x00ff0000) >> 16;
-    uint32_t c = (addr & 0x0000ff00) >> 8;
-    uint32_t d = (addr & 0x000000ff);
-    // BRM 2025-02-01 changed from %lu to resolve warning
-    snprintf(dottedAddr, dottedAddrSize, "%u.%u.%u.%u", a, b, c, d);
-}
-
-uint32_t parseIP4Address(const char* dottedAddr, uint32_t len) {
-    uint32_t result = 0;
-    char acc[8];
-    uint32_t accLen = 0;
-    const char *p = dottedAddr;
-    uint32_t octets = 4;
-
-    // If a limit has been specifed, calculate the stopping point
-    const char* lastChar = 0;
-    if (len != 0) {
-        lastChar = dottedAddr + len - 1;
-    }
-
-    while (true) {
-        if (*p == '.' || *p == 0 || p == lastChar) {
-            acc[accLen] = 0;
-            // Shift up
-            result <<= 8;
-            // Accumulate LSB
-            result |= (uint8_t)atoi(acc);
-            accLen = 0;
-            // Count octets
-            octets++;
-            // Done yet?
-            if (octets == 4 || *p == 0 || p == lastChar) {
-                break;
-            }
-        }
-        else {
-            acc[accLen++] = *p;
-        }
-        p++;
-    }
-#ifdef PICO_BUILD
-    return result;
-#else
-    return htonl(result);
-#endif
-}
-
 int tokenize(const char* data, char delim, fixedqueue<fixedstring>& result) {
     int state = 0;
     fixedstring accumulator;

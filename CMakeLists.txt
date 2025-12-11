@@ -89,3 +89,15 @@ add_executable(gen-test-1
 
 target_include_directories(gen-test-1 PRIVATE src)
 target_include_directories(gen-test-1 PRIVATE include)
+
+# ------ net-test-1 ---------------------------------------------------------
+# Target: Host
+
+add_executable(net-test-1
+  tests/net-test-1.cpp
+  src/NetUtils.cpp
+  src/Common.cpp
+) 
+
+target_include_directories(net-test-1 PRIVATE src)
+target_include_directories(net-test-1 PRIVATE include)
