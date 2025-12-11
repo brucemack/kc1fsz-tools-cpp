@@ -254,4 +254,24 @@ int getIPPort(const sockaddr& addr) {
         assert(false);
 }
 
+int makeNonBlocking(ing sockFd) {
+#ifdef _WIN32
+    u_long mode = 1; 
+    int result = ioctlsocket(sockFd, FIONBIO, &mode);
+    if (result != NO_ERROR) {
+        return -1;
+    }
+#else
+    int flags = fcntl(sockFd, F_GETFL, 0);
+    if (flags == -1) {
+        return -1;
+    }
+    if (fcntl(sockFd, F_SETFL, flags | O_NONBLOCK) == -1) {
+        return -1;
+    }
+#endif
+    return 0;
+}
+
+
 }

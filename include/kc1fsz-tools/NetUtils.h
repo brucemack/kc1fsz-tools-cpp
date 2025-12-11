@@ -16,7 +16,11 @@
  */
 #pragma once
 
+#ifdef _WIN32
+#include <winsock2.h>
+#else
 #include <sys/socket.h>
+#endif
 
 namespace kc1fsz {
 
@@ -92,5 +96,10 @@ void setIPPort(sockaddr_storage& addr, int port);
  * Gets the port part of an address. Works for IPv4 and IPv6.
  */
 int getIPPort(const sockaddr& addr);
+
+/**
+ * @returns 0 on success, -1 on failure
+ */
+int makeNonBlocking(int sockFd);
 
 }
