@@ -27,7 +27,7 @@
 #include <pico/time.h>
 #else
 #include <sys/time.h>
-#include <arpa/inet.h>
+//#include <arpa/inet.h>
 #endif
 
 #include "kc1fsz-tools/fixedqueue.h"

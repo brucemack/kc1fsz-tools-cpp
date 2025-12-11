@@ -14,8 +14,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#endif 
 
 #include <cassert>
 #include <cstring>
@@ -254,7 +259,7 @@ int getIPPort(const sockaddr& addr) {
         assert(false);
 }
 
-int makeNonBlocking(ing sockFd) {
+int makeNonBlocking(int sockFd) {
 #ifdef _WIN32
     u_long mode = 1; 
     int result = ioctlsocket(sockFd, FIONBIO, &mode);
