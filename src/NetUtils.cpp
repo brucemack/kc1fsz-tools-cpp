@@ -22,6 +22,8 @@
 #include <arpa/inet.h>
 #endif 
 
+#include <fcntl.h>
+
 #include <cassert>
 #include <cstring>
 #include <cstdio>
