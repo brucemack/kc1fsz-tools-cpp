@@ -29,6 +29,12 @@ public:
         return data_queue.empty();
     }
 
+    void clear() {
+        std::lock_guard<std::mutex> lk(mut);
+        while (!data_queue.empty())
+            data_queue.pop();
+    }
+
 private:
 
     mutable std::mutex mut;
