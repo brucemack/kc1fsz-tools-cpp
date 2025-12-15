@@ -45,6 +45,14 @@ public:
         return _data[i];
     }
 
+    T& operator[](unsigned i) {
+        return at(i);
+    }
+
+    const T& operator[](unsigned i) const {
+        return at(i);
+    }
+
     /**
      * Visitor with predicate
      * @param visitor Called for each item that passes the predicate. Should
