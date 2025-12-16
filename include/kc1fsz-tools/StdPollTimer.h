@@ -51,7 +51,7 @@ public:
      * poll() you will get a few expirations in quick succession while
      * the timer catches up.
      */
-    virtual bool poll();
+    virtual bool poll(uint64_t* intervalStart = 0);
 
     /**
      * @returns The start time of the current interval in microseconds.

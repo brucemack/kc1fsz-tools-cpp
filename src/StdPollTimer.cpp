@@ -56,14 +56,17 @@ uint64_t StdPollTimer::usLeftInInterval() const {
         return 0;
 }
 
-bool StdPollTimer::poll() {  
+bool StdPollTimer::poll(uint64_t* intervalStart) {  
     uint64_t now = _clock.timeUs();
     uint64_t nextPointUs = _lastPointUs + _intervalUs;
-    // When we pass the point move forward ONE interval. Note
+    // When we pass the point move forward EXACTLY ONE interval. Note
     // that there is no guarantee that the next point will be
-    // in the future (particularly if we've fallen behind).
+    // now or in the future (particularly if we've fallen behind).
+    // No ticks should be lost.
     if (now >= nextPointUs) {
         _lastPointUs += _intervalUs;
+        if (intervalStart)
+            *intervalStart = _lastPointUs;
         return true;
     } else {
         return false;  

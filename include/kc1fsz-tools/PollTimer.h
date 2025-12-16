@@ -47,12 +47,12 @@ public:
      * poll() you will get a few expirations in quick succession while
      * the timer catches up.
      */
-    virtual bool poll() = 0;
+    virtual bool poll(uint64_t* intervalStartUs = 0) = 0;
 
     /**
      * @returns The start time of the current interval in microseconds.
      * This will be return the time applicable for when the LAST time
-     * poll() return true. The time will stay constant until the next
+     * poll() return true. The time WILL STAY CONSTANT until the next
      * time that poll() returns true.
      */
     virtual uint64_t getCurrentIntervalUs() const = 0;

@@ -15,15 +15,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <ctime>
+#include <iostream>
+
 #include <kc1fsz-tools/linux/StdClock.h>
 
 namespace kc1fsz {
 
 // TODO: CLEAN UP WRAP PROBLEMS
+
 uint32_t StdClock::time() const {
-    timespec t1;
-    clock_gettime(CLOCK_REALTIME, &t1);
-    return t1.tv_sec * 1000 + t1.tv_nsec / 1000000;
+    uint64_t t = timeUs();
+    t /= 1000;
+    return t;
 }
 
 uint64_t StdClock::timeUs() const {
