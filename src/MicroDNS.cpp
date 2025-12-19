@@ -340,8 +340,56 @@ int parseDNSAnswer_A(const uint8_t* packet, unsigned packetLen,
     return i;
 }
 
-int makeDNSQuery_SRV(uint16_t id, const char* domainName, uint8_t* packet, 
-    unsigned packetSize) {
+int parseDNSAnswer_TXT(const uint8_t* packet, unsigned packetLen,  char* txt, unsigned txtCapacity) {
+    // Skip past the header and all questions 
+    int rc0 = skipQuestions(packet, packetLen);
+    if (rc0 < 0)
+        return rc0;
+    unsigned i = rc0;
+    // We just skip paste the NAME
+    int rc = parseDomainName(packet, packetLen, i, 0, 0);
+    if (rc < 0)
+        return rc;
+    i = rc;
+    // TYPE
+    if (i + 2 > packetLen)
+        return -1;
+    uint16_t typeCode = unpack_uint16_be(packet + i);
+    i += 2;
+    if (typeCode != 0x0010)
+        return -3;
+    // CLASS
+    if (i + 2 > packetLen)
+        return -1;
+    uint16_t classCode = unpack_uint16_be(packet + i);
+    i += 2;
+    if (classCode != 0x0001)
+        return -4;
+    // TTL (not used)
+    if (i + 4 > packetLen)
+        return -1;
+    i += 4;
+    // RDLENGTH
+    if (i + 2 > packetLen)
+        return -1;
+    uint16_t rdLength = unpack_uint16_be(packet + i);
+    i += 2;
+    // Sanity check, is the packet large enough to contain the TXT payload
+    if (i + rdLength > packetLen)
+        return -5;
+    // Make sure we can handle the complete contents of the TXT payload, including the 
+    // null termination
+    if (rdLength + 1 > txtCapacity)
+        return -6;
+    strncpy(txt, (const char*)(packet + i), rdLength);
+    // Null terminate
+    txt[rdLength] = 0;
+    i += rdLength;
+    return i;
+}
+
+static int makeDNSQuery(uint16_t id, uint16_t qtype, const char* domainName, 
+    uint8_t* packet, unsigned packetSize) {
     int i = makeDNSHeader(id, packet, packetSize);
     if (i < 0)
         return i;
@@ -354,35 +402,27 @@ int makeDNSQuery_SRV(uint16_t id, const char* domainName, uint8_t* packet,
     if ((unsigned)(i + 4) >= packetSize)
         return -1;
     // QTYPE
-    pack_uint16_be(0x0021, packet + i);
+    pack_uint16_be(qtype, packet + i);
     i += 2;
     // QCLASS
     pack_uint16_be(0x0001, packet + i);
     i += 2;
     return i;
+}
+
+int makeDNSQuery_SRV(uint16_t id, const char* domainName, uint8_t* packet, 
+    unsigned packetSize) {
+    return makeDNSQuery(id, 0x0021, domainName, packet, packetSize);
 }
 
 int makeDNSQuery_A(uint16_t id, const char* domainName, uint8_t* packet, 
     unsigned packetSize) {
-    int i = makeDNSHeader(id, packet, packetSize);
-    if (i < 0)
-        return i;
-    // Write the domain name
-    int i2 = writeDomainName(domainName, packet + i, packetSize - i);
-    if (i2 < 0)
-        return i2;
-    i += i2;
-    // Space for the rest?
-    if ((unsigned)(i + 4) >= packetSize)
-        return -1;
-    // QTYPE (A type)
-    pack_uint16_be(0x0001, packet + i);
-    i += 2;
-    // QCLASS
-    pack_uint16_be(0x0001, packet + i);
-    i += 2;
-    return i;
+    return makeDNSQuery(id, 0x0001, domainName, packet, packetSize);
 }
 
+int makeDNSQuery_TXT(uint16_t id, const char* domainName, uint8_t* packet, 
+    unsigned packetSize) {
+    return makeDNSQuery(id, 0x0010, domainName, packet, packetSize);
 }
+
 }

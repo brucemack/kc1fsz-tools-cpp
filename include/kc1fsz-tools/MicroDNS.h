@@ -14,8 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef _MicroDNS_h
-#define _MicroDNS_h
+#pragma once
 
 #include <cstdint>
 
@@ -77,11 +76,19 @@ int parseDNSAnswer_SRV(const uint8_t* packet, unsigned packetLen,
  */
 int parseDNSAnswer_A(const uint8_t* packet, unsigned packetLen, 
     uint32_t* addr);
+/**
+ * Parses key data elements out of a response to a TXT query.
+ */
+int parseDNSAnswer_TXT(const uint8_t* packet, unsigned packetLen, 
+    char* txt, unsigned txtCapacity);
 
 int makeDNSQuery_SRV(uint16_t id, const char* domainName, uint8_t* packet, 
     unsigned packetSize);
 
 int makeDNSQuery_A(uint16_t id, const char* domainName, uint8_t* packet, 
+    unsigned packetSize);
+
+int makeDNSQuery_TXT(uint16_t id, const char* domainName, uint8_t* packet, 
     unsigned packetSize);
 
     }
