@@ -382,7 +382,7 @@ int parseDNSAnswer_TXT(const uint8_t* packet, unsigned packetLen,  char* txt, un
     i += 1;
     // Make sure we can handle the complete contents of the TXT payload, including the 
     // null termination
-    if (txtLength + 1 > txtCapacity)
+    if ((unsigned)(txtLength + 1) > txtCapacity)
         return -6;
     strncpy(txt, (const char*)(packet + i), txtLength);
     // Null terminate
