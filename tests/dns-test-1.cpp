@@ -112,6 +112,7 @@ static void unit_tests_3() {
     uint32_t addr = 0;
     char txt[65];
     int rc1 = parseDNSAnswer_TXT(PACKET_1, sizeof(PACKET_1), txt, 65);
+    cout << rc1 << endl;
     assert(rc1 > 0);
     assert(strcmp(txt, "7FDD773A09DD6024A15930EF2ED16F39DC62EECC06B4F68FA41AB9B22CA6BC69") == 0);
 }
