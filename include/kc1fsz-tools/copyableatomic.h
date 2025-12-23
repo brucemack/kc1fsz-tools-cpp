@@ -16,43 +16,38 @@
  */
 #pragma once 
 
-#include <queue>
 #include <thread>
 #include <mutex>
+#include <functional>
 
 template <typename T>
-class threadsafequeue {
+class copyableatomic {
 public:
 
-    threadsafequeue() = default;
+    copyableatomic() = default;
 
-    void push(T new_value) {
+    void set(T newValue) {
         std::lock_guard<std::mutex> lk(mut);
-        data_queue.push(std::move(new_value));
+        _safeValue = newValue;
     }
    
-    bool try_pop(T& value) {
+    T getCopy() const {
         std::lock_guard<std::mutex> lk(mut);
-        if (data_queue.empty())
-            return false;
-        value = std::move(data_queue.front());
-        data_queue.pop();
-        return true;
+        T c = _safeValue;
+        return c;
     }
 
-    bool empty() const {
+    /**
+     * The callback provides access to the live value while under 
+     * the control of the lock.
+     */
+    void manipulateUnderLock(std::function<void(T& liveValue)> cb) {
         std::lock_guard<std::mutex> lk(mut);
-        return data_queue.empty();
-    }
-
-    void clear() {
-        std::lock_guard<std::mutex> lk(mut);
-        while (!data_queue.empty())
-            data_queue.pop();
+        cb(_safeValue);
     }
 
 private:
 
     mutable std::mutex mut;
-    std::queue<T> data_queue;
+    T _safeValue;
 };
