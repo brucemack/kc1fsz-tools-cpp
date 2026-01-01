@@ -28,10 +28,11 @@ MTLog::MTLog() {
 
 void MTLog::_out(const char* sev, const char* dt, const char* msg) {
     char tid[16];
-    //snprintf(tid, 8, "%6X", (unsigned int)gettid());
     pthread_getname_np(pthread_self(), tid, sizeof(tid));
+    char tid2[32];
+    snprintf(tid2, 32, "%8s", tid);
     pthread_mutex_lock(&_mutex);
-    std::cout << tid << " " << sev << dt << " " << msg << std::endl;
+    std::cout << tid2 << " " << sev << dt << " " << msg << std::endl;
     pthread_mutex_unlock(&_mutex);
 }
 
