@@ -16,8 +16,7 @@
  *
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
-#ifndef _Log_h
-#define _Log_h
+#pragma once
 
 #include <cstdarg>
 #include <iostream>
@@ -52,7 +51,7 @@ public:
         char timeBuf[32];
         _fmtTime(timeBuf, 32);
 
-        _out("I: ", timeBuf, buf);
+        _out("I", timeBuf, buf);
     }
 
     virtual void error(const char* format, ...) {
@@ -67,7 +66,7 @@ public:
         char timeBuf[32];
         _fmtTime(timeBuf, 32);
 
-        _out("E: ", timeBuf, buf);
+        _out("E", timeBuf, buf);
     }
 
     virtual void debugDump(const char* msg, const uint8_t* data, uint32_t dataLen) {
@@ -77,7 +76,7 @@ public:
         char timeBuf[32];
         _fmtTime(timeBuf, 32);
 
-        _out("D: ", timeBuf, msg);
+        _out("D", timeBuf, msg);
         prettyHexDump(data, dataLen, std::cout);
     }
 
@@ -89,7 +88,7 @@ public:
         char timeBuf[32];
         _fmtTime(timeBuf, 32);
 
-        _out("I: ", timeBuf, msg);
+        _out("I", timeBuf, msg);
         prettyHexDump(data, dataLen, std::cout);
     }
 
@@ -135,7 +134,7 @@ protected:
 protected:
 
     virtual void _out(const char* sev, const char* dt, const char* msg) {
-        std::cout << sev << dt << " " << msg << std::endl;
+        std::cout << sev << ": " << dt << " " << msg << std::endl;
     }
 
 private:
@@ -144,5 +143,3 @@ private:
     bool _enabled = true;
 };
 }
-
-#endif

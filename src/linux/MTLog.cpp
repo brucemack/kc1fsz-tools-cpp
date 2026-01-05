@@ -32,7 +32,7 @@ void MTLog::_out(const char* sev, const char* dt, const char* msg) {
     char tid2[32];
     snprintf(tid2, 32, "%8s", tid);
     pthread_mutex_lock(&_mutex);
-    std::cout << tid2 << " " << sev << dt << " " << msg << std::endl;
+    std::cout << tid2 << " " << sev << ": " << dt << " " << msg << std::endl;
     pthread_mutex_unlock(&_mutex);
 }
 
