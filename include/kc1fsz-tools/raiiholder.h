@@ -28,8 +28,14 @@ namespace kc1fsz {
 template <typename T> class raiiholder {
 public:
 
-    raiiholder(T* o, std::function<void(T*)> f) :  _o(o), _f(f) { }
-    ~raiiholder() { _f(_o); }
+    raiiholder(T* resource, std::function<void(T*)> f) :  _o(resource), _f(f) { }
+    ~raiiholder() { if (_o) _f(_o); }
+
+    /**
+     * Asks the holder to let go of the resource, presumably because something 
+     * else has taken owndership of it.
+     */
+    void release() { _o = 0; }
 
 private:
 
