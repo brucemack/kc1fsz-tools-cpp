@@ -61,4 +61,14 @@ int main(int, const char**) {
         assert(rc2 == 8);
         assert(memcmp(inmsg, outmsg2, 8) == 0);
     }
+    {
+        uint8_t inmsg[8] = { 0,0,0,0,0,0,0,0 };
+        uint8_t outmsg[16];
+        uint8_t outmsg2[16];
+        int rc = cobsEncode(inmsg, 8, outmsg, 16);
+        assert(rc == 9);
+        unsigned rc2 = cobsDecode(outmsg, rc, outmsg2, 16);
+        assert(rc2 == 8);
+        assert(memcmp(inmsg, outmsg2, 8) == 0);
+    }
 }
