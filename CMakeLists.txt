@@ -54,7 +54,6 @@ target_include_directories(audio-test-1 PRIVATE include)
 add_executable(uart-test-1
   tests/rp2040/uart-test-1.cpp
   src/rp2040/PicoUartChannel.cpp
-  src/rp2040/PicoPollTimer.cpp
 )
 
 if(DEFINED ENV{PICO_BUILD})
@@ -101,3 +100,15 @@ add_executable(net-test-1
 
 target_include_directories(net-test-1 PRIVATE src)
 target_include_directories(net-test-1 PRIVATE include)
+
+# ------ cobs-test-1 ---------------------------------------------------------
+
+add_executable(cobs-test-1
+  tests/cobs-test-1.cpp
+  src/NetUtils.cpp
+  src/Common.cpp
+  src/CobsCodec.cpp
+) 
+
+target_include_directories(cobs-test-1 PRIVATE src)
+target_include_directories(cobs-test-1 PRIVATE include)
