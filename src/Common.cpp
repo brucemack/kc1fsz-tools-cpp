@@ -302,5 +302,15 @@ void binToAsciiHex(const uint8_t* bin, unsigned binLen, char* hex, unsigned hexL
     }
 }
 
+uint32_t sizeToBitMask(uint32_t s) {
+    uint32_t mask = 0;
+    unsigned temp = s;
+    for (unsigned i = 0; i < 32 && (temp & 1) == 0; i++) {
+        mask = (mask << 1) | 1;
+        temp >>= 1;
+    }
+    return mask;
+}
+
 }
 

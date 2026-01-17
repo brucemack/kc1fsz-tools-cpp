@@ -140,4 +140,11 @@ void asciiHexToBin(const char* hex, unsigned hexLen, uint8_t* bin, unsigned binL
  */
 void binToAsciiHex(const uint8_t* bin, unsigned binLen, char* hex, unsigned hexLen);
 
+/**
+ * Computes the mask that corresponds to a power-of-two buffer size.
+ * For example, if size=512 then the mask=0b111111111 (nine ones).
+ * This is useful for wrapping power-two circular buffer pointers.
+ */
+uint32_t sizeToBitMask(uint32_t size);
+
 }
