@@ -36,6 +36,22 @@
 
 namespace kc1fsz {
 
+// Function to trim leading whitespace (ltrim)
+void ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if_not(s.begin(), s.end(), ::isspace));
+}
+
+// Function to trim trailing whitespace (rtrim)
+void rtrim(std::string &s) {
+    s.erase(std::find_if_not(s.rbegin(), s.rend(), ::isspace).base(), s.end());
+}
+
+// Function to trim both leading and trailing whitespace (trim)
+void trim(std::string &s) {
+    ltrim(s);
+    rtrim(s);
+}
+
 #ifndef PICO_BUILD
 //void panic(const char* msg) {
 //    std::cerr << "PANIC: " << msg << std::endl;

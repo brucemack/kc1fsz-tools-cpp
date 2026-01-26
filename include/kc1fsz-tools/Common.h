@@ -20,11 +20,19 @@
 
 #include <cstdint>
 #include <iostream>
+#include <string>
 
 namespace kc1fsz {
 
 template<class T> class fixedqueue;
 class fixedstring;
+
+// Function to trim leading whitespace (ltrim)
+void ltrim(std::string &s);
+// Function to trim trailing whitespace (rtrim)
+void rtrim(std::string &s);
+// Function to trim both leading and trailing whitespace (trim)
+void trim(std::string &s);
 
 void prettyHexDump(const uint8_t* data, uint32_t len, std::ostream& out,
     bool color = false);
