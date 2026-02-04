@@ -26,9 +26,15 @@ public:
 
     /**
      * @returns The canonical milliseconds since the epoch.
-     * TODO: Address wrap-around problems.
+     * Use caution because of 32-bit wrap-around issues.
      */
     virtual uint32_t time() const = 0;
+
+    /**
+     * @returns true when the current time is past the reference time.
+     * Use caution because of 32-bit wrap-around issues.
+     */
+    bool isPast(uint32_t refMs) const { return time() > refMs; }
 
     /**
      * @returns The canonical microseconds since the epoch.
@@ -36,9 +42,18 @@ public:
     virtual uint64_t timeUs() const { return time() * 1000; }
 
     /**
-     * @returns true when the current time is past the reference time
+     * @returns The canonical milliseconds since the epoch.
      */
-    bool isPast(uint32_t ref) const { return time() > ref; }
+    virtual uint64_t timeMs() const { return timeUs() / 1000; }
+
+    bool isPastWindow(uint64_t refMs, uint64_t windowMs) const { 
+        return timeMs() > refMs + windowMs; 
+    }
+
+    bool isInWindow(uint64_t refMs, uint64_t windowMs) const { 
+        uint64_t nowMs = timeMs();
+        return refMs <= nowMs && nowMs < (refMs + windowMs); 
+    }
 };
 
 }
