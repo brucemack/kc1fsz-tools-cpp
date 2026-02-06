@@ -19,7 +19,7 @@
  */
 #include <cassert>
 
-#include "fixed_math.h"
+#include "kc1fsz-tools/fixed_math.h"
 
 namespace kc1fsz {
 
@@ -130,7 +130,7 @@ int16_t div(int16_t num, int16_t denum) {
         L_num = L_num << 1;
         if (L_num >= L_denum) {
             L_num = L_sub(L_num, L_denum);
-            div = add(div, 1);
+            div = add_sat(div, 1);
         }
     }
     return div;
