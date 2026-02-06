@@ -50,7 +50,7 @@ public:
 
         char timeBuf[32];
         _fmtTime(timeBuf, 32);
-
+        
         _out("I", timeBuf, buf);
     }
 
