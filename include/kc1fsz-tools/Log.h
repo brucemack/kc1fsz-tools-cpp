@@ -48,8 +48,8 @@ public:
         vsnprintf(buf, 128, format, argptr);
         va_end(argptr);
 
-        char timeBuf[32];
-        _fmtTime(timeBuf, 32);
+        char timeBuf[64];
+        _fmtTime(timeBuf, sizeof(timeBuf));
         
         _out("I", timeBuf, buf);
     }
@@ -63,8 +63,8 @@ public:
         vsnprintf(buf, 128, format, argptr);
         va_end(argptr);
 
-        char timeBuf[32];
-        _fmtTime(timeBuf, 32);
+        char timeBuf[64];
+        _fmtTime(timeBuf, 64);
 
         _out("E", timeBuf, buf);
     }
@@ -73,8 +73,8 @@ public:
         if (!_enabled)
             return;
 
-        char timeBuf[32];
-        _fmtTime(timeBuf, 32);
+        char timeBuf[64];
+        _fmtTime(timeBuf, sizeof(timeBuf));
 
         _out("D", timeBuf, msg);
         prettyHexDump(data, dataLen, std::cout);
@@ -85,8 +85,8 @@ public:
         if (!_enabled)
             return;
 
-        char timeBuf[32];
-        _fmtTime(timeBuf, 32);
+        char timeBuf[64];
+        _fmtTime(timeBuf, sizeof(timeBuf));
 
         _out("I", timeBuf, msg);
         prettyHexDump(data, dataLen, std::cout);
@@ -126,7 +126,7 @@ protected:
         struct tm* timeinfo = localtime(&rawtime);
         long mil = tv.tv_usec / 1000;
         char temp[32];
-        strftime (temp, 32, "%m-%d %T", timeinfo);
+        strftime (temp, sizeof(temp), "%m-%d %T", timeinfo);
         snprintf(buf, len, "%s.%03ld", temp, mil);
 #endif
     }
