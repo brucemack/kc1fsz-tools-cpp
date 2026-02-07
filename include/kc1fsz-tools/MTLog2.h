@@ -39,7 +39,7 @@ protected:
         tid[0] = 0;
         {
             std::lock_guard<std::mutex> guard(_mutex); 
-            std::cout << tid << " " << sev << dt << " " << msg << std::endl;
+            std::cout << tid << " " << sev << " " << dt << " " << msg << std::endl;
             _lockedOut(sev, dt, msg);
         }
     }
