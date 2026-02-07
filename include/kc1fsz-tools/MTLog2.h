@@ -44,6 +44,11 @@ protected:
         }
     }
 
+    /**
+     * @param sev Severity
+     * @param dt Date/time
+     * @param msg Text
+     */
     virtual void _lockedOut(const char* sev, const char* dt, const char* msg) { }
 
     std::mutex _mutex;

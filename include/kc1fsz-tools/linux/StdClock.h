@@ -29,7 +29,7 @@ public:
     virtual uint32_t time() const;
     virtual uint64_t timeUs() const;
 
-    void setTime(uint32_t t) { }
+    void setTime(uint32_t) { }
 };
 
 }
