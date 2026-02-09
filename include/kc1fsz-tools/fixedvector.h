@@ -97,7 +97,7 @@ public:
     /**
      * Counter with predicate
      */
-    unsigned countIf(std::function<bool(const T&)> predicate) {
+    unsigned countIf(std::function<bool(const T&)> predicate) const {
         unsigned result = 0;;
         for (unsigned i = 0; i < size(); i++)
             if (predicate(at(i)))
