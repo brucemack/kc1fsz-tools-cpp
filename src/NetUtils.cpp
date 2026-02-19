@@ -214,6 +214,7 @@ unsigned getIPAddrSize(const sockaddr& addr) {
         return sizeof(sockaddr_in6);
     } else
         assert(false);
+    return 0;
 }
 
 bool equalIPAddr(const sockaddr& a0, const sockaddr& a1) {
@@ -231,6 +232,7 @@ bool equalIPAddr(const sockaddr& a0, const sockaddr& a1) {
             ) == 0;
     else
         assert(false);
+    return false;
 }
 
 void setIPAddr(sockaddr_storage& addr, const char* strAddr) {
@@ -259,6 +261,7 @@ int getIPPort(const sockaddr& addr) {
         return ntohs(((const sockaddr_in6&)addr).sin6_port);
     else
         assert(false);
+    return -1;
 }
 
 int makeNonBlocking(int sockFd) {
@@ -268,6 +271,7 @@ int makeNonBlocking(int sockFd) {
     if (result != NO_ERROR) {
         return -1;
     }
+#elifdef PICO_BOARD
 #else
     int flags = fcntl(sockFd, F_GETFL, 0);
     if (flags == -1) {
