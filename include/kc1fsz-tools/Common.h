@@ -126,6 +126,9 @@ uint16_t unpack_uint16_be(const uint8_t* in);
 void pack_int16_le(int16_t v, uint8_t* out);
 int16_t unpack_int16_le(const uint8_t* out);
 
+void pack_int16_be(int16_t v, uint8_t* out);
+int16_t unpack_int16_be(const uint8_t* out);
+
 /**
  * Takes a ASCII hex string and converts to the binary representation. Helpful
  * for certain crypto use-cases.
