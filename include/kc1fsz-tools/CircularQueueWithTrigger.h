@@ -16,6 +16,8 @@
  */
 #pragma once
 
+#include "kc1fsz-tools/CircularQueuePointers.h"
+
 namespace kc1fsz {
 
 /**
