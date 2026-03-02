@@ -38,10 +38,10 @@ namespace kc1fsz {
 
 void formatIP4Address(uint32_t addr, char* dottedAddr, uint32_t dottedAddrSize) {
     // This is the high-order part of the address.
-    uint32_t a = (addr & 0xff000000) >> 24;
-    uint32_t b = (addr & 0x00ff0000) >> 16;
-    uint32_t c = (addr & 0x0000ff00) >> 8;
-    uint32_t d = (addr & 0x000000ff);
+    unsigned a = (addr & 0xff000000) >> 24;
+    unsigned b = (addr & 0x00ff0000) >> 16;
+    unsigned c = (addr & 0x0000ff00) >> 8;
+    unsigned d = (addr & 0x000000ff);
     // BRM 2025-02-01 changed from %lu to resolve warning
     snprintf(dottedAddr, dottedAddrSize, "%u.%u.%u.%u", a, b, c, d);
 }

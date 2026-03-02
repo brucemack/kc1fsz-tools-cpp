@@ -18,7 +18,6 @@
 
 namespace kc1fsz {
 
-
 /**
  * A generic class for managing the pointers in a circular queue.
  * (I'm tired of writing this over an over again.)
@@ -40,6 +39,7 @@ public:
     }
 
     bool isFull() const {
+        // Hold back one to avoid the full/empty ambiguity
         return _next(_writePtr) == _readPtr;
     }
 
@@ -48,6 +48,14 @@ public:
      */
     unsigned getDepth() const {
         return _depth;
+    }
+
+    /**
+     * @return The number of free spaces in the queue.
+     */
+    unsigned getFree() const {
+        // Hold back one to avoid the full/empty ambiguity
+        return _capacity - getDepth() - 1;
     }
 
     bool isFault() const { return _fault; }
@@ -77,6 +85,16 @@ public:
         }
     }
 
+    void push(unsigned c) { 
+        unsigned p = std::min(c, getFree());
+        _writePtr += p;
+        if (_writePtr >= _capacity)
+            _writePtr -= _capacity;
+        _depth += p;
+        if (p < c)
+            _fault = true;
+    }
+
     void pop() {
         if (isEmpty())
             _fault = true;
@@ -84,6 +102,24 @@ public:
             _readPtr = _next(_readPtr);
             _depth--;
         }
+    }
+
+    /**
+     * @returns The largest contiguous write that can be performed before 
+     * overflowing or wrapping.
+     */
+    unsigned getMaxContiguousPushLength() const {
+        if (isFull()) 
+            return 0;
+        // When read pointer is to the right of the write pointer then we
+        // can only write as far as the reader pointer - 1 before filling up.
+        else if (_readPtr > _writePtr)
+            return _readPtr - _writePtr - 1;
+        // When the read pointer is to the left then we can write as much 
+        // as the capacity will allow, keeping one free to avoid the full/empty
+        // ambiguity.
+        else 
+            return std::min(_capacity - _writePtr, _capacity - 1);
     }
 
 private:

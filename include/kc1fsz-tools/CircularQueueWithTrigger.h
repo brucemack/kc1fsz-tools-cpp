@@ -16,7 +16,14 @@
  */
 #pragma once
 
+#include <concepts>
+
+// ### REMOVE
+#include <iostream>
+
 #include "kc1fsz-tools/CircularQueuePointers.h"
+
+using namespace std;
 
 namespace kc1fsz {
 
@@ -43,6 +50,22 @@ public:
             _space[_ptrs.writePtrThenPush()] = frame[i];
     }
 
+    // Specializations for speed for certain types
+    // Here we use the max contiguous concept to batch the pushes. If the 
+    // push wraps around the end of the circular space then we'll use two pushes.
+    void pushInt32(const int32_t* frame, unsigned frameLen) {
+        unsigned firstPart = std::min(_ptrs.getMaxContiguousPushLength(), frameLen);
+        if (firstPart)
+            memcpy(_space + _ptrs.writePtr(), frame, sizeof(int32_t) * firstPart);
+        _ptrs.push(firstPart);
+        if (!_ptrs.isFull() && firstPart < frameLen) {
+            unsigned secondPart = std::min(_ptrs.getMaxContiguousPushLength(), frameLen - firstPart);
+            if (secondPart)
+                memcpy(_space + _ptrs.writePtr(), frame + firstPart, sizeof(int32_t) * secondPart);
+            _ptrs.push(secondPart);
+        }
+    }
+
     bool tryPop(T* frame, unsigned frameLen) {
         if (_ptrs.getDepth() < frameLen) {
             _triggered = false;
@@ -62,9 +85,10 @@ public:
 private:
 
     T* _space;
-    unsigned _fillTrigger;
     CircularQueuePointers _ptrs;
+    unsigned _fillTrigger;
     bool _triggered = false;
 };
+
 
 }
