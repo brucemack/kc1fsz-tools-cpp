@@ -73,8 +73,32 @@ int main(int,const char**) {
     assert(space[3] == 3);
     assert(space[0] == 4);
 
-    q.tryPop(temp2, 3);
+    // This will cause two reads because of the wrap
+    q.tryPopInt32(temp2, 3);
     assert(temp2[0] == 2);
     assert(temp2[1] == 3);
     assert(temp2[2] == 4);
+    assert(q.getDepth() == 0);
+
+    // Repeat the operation to makes sure all pointers are right
+    q.pushInt32(temp + 2, 3);
+    assert(q.getDepth() == 3);
+    // Notice placement is different
+    assert(space[1] == 2);
+    assert(space[2] == 3);
+    assert(space[3] == 4);
+
+    q.tryPopInt32(temp2, 3);
+    assert(temp2[0] == 2);
+    assert(temp2[1] == 3);
+    assert(temp2[2] == 4);
+    assert(q.isEmpty());
+
+    // Read tests
+    ptrs.reset();
+    assert(ptrs.getMaxContiguousPopLength() == 0);
+    ptrs.push(3);
+    assert(ptrs.getMaxContiguousPopLength() == 3);
+
+
 }

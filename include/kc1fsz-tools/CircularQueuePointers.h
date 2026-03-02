@@ -31,7 +31,7 @@ public:
     }
 
     void reset() {
-        _readPtr = 0; _writePtr = 0; _fault = false; _depth = 0;
+        _readPtr = 0; _writePtr = 0; _overflowCount = 0; _underflowCount = 0; _depth = 0;
     }
 
     bool isEmpty() const {
@@ -58,7 +58,11 @@ public:
         return _capacity - getDepth() - 1;
     }
 
-    bool isFault() const { return _fault; }
+    bool isFault() const { return _overflowCount != 0 || _underflowCount != 0; }
+
+    unsigned getOverflows() const { return _overflowCount; }
+
+    unsigned getUnderflows() const { return _underflowCount; }
 
     unsigned writePtr() const { return _writePtr; }
 
@@ -78,30 +82,41 @@ public:
 
     void push() { 
         if (isFull())
-            _fault = true;
+            _overflowCount = _overflowCount + 1;
         else {
             _writePtr = _next(_writePtr);
-            _depth++;
+            _depth = _depth + 1;
         }
     }
 
     void push(unsigned c) { 
-        unsigned p = std::min(c, getFree());
-        _writePtr += p;
+        const unsigned p = std::min(c, getFree());
+        _writePtr = _writePtr + p;
         if (_writePtr >= _capacity)
-            _writePtr -= _capacity;
-        _depth += p;
+            _writePtr = _writePtr - _capacity;
+        _depth = _depth + p;
         if (p < c)
-            _fault = true;
+            _overflowCount = _overflowCount + 1;
     }
 
     void pop() {
         if (isEmpty())
-            _fault = true;
+            _underflowCount = _underflowCount + 1;
         else {
             _readPtr = _next(_readPtr);
-            _depth--;
+            _depth = _depth - 1;
         }
+    }
+
+    void pop(unsigned c) { 
+        const unsigned p = std::min(c, getDepth());
+        _readPtr = _readPtr + p;
+        // Manage wrap
+        if (_readPtr >= _capacity)
+            _readPtr = _readPtr - _capacity;
+        _depth = _depth - p;
+        if (p < c)
+            _underflowCount = _underflowCount + 1;
     }
 
     /**
@@ -122,6 +137,19 @@ public:
             return std::min(_capacity - _writePtr, _capacity - 1);
     }
 
+    unsigned getMaxContiguousPopLength() const {
+        if (isEmpty()) 
+            return 0;
+        // When write pointer is to the right of the read pointer then we
+        // can only read as far as the write pointer before emptying out.
+        else if (_writePtr > _readPtr)
+            return _writePtr - _readPtr;
+        // When the write pointer is to the left then we can read as much 
+        // as the capacity will allow.
+        else 
+            return _capacity - _readPtr;
+    }
+
 private:
 
     /**
@@ -135,10 +163,11 @@ private:
     }
 
     const unsigned _capacity;
-    unsigned _readPtr = 0;
-    unsigned _writePtr = 0;
-    bool _fault = false;
-    unsigned _depth = 0;
+    volatile unsigned _readPtr = 0;
+    volatile unsigned _writePtr = 0;
+    volatile unsigned _overflowCount = 0;
+    volatile unsigned _underflowCount = 0;
+    volatile unsigned _depth = 0;
 };
 
 }
