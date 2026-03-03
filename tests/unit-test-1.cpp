@@ -8,8 +8,67 @@
 using namespace std;
 using namespace kc1fsz;
 
+
+static void math1() {
+    {
+        // q15 times q15
+        int16_t a = 0.25 * 32767.0;
+        int16_t b = 0.25 * 32767.0;
+        int16_t c = ((int32_t)a * (int32_t)b) >> 15;
+        cout << "c=" << (float)c / 32767.0f << endl;
+    }
+
+    {
+        // q15 times q13
+        // q15 value
+        int16_t a = 0.25 * 32767.0;
+        // q13 value
+        int16_t b = 2.0 * (32767.0 / 4.0);
+        // Notice here we shift right by 15 - 2 = 13
+        int16_t c = ((int32_t)a * (int32_t)b) >> 13;
+        cout << "c=" << (float)c / 32767.0f << endl;
+    }
+
+    {
+        // q15 times q10
+        // q15 value
+        int16_t a = 0.25 * 32767.0;
+        // q10 value
+        int16_t b = 2.0 * (32767.0 / 32.0);
+        // Notice here we shift right by 15 - 5 = 10
+        int16_t c = ((int32_t)a * (int32_t)b) >> 10;
+        cout << "c=" << (float)c / 32767.0f << endl;
+    }
+
+    {
+        // q15 times q11
+        // q15 value
+        int16_t a = 0.0625 * 32767.0;
+        // q11 value
+        int16_t b = 16.0 * (32767.0 / 16.0);
+        // Notice here we shift right by 15 - 4 = 11
+        int16_t c = ((int32_t)a * (int32_t)b) >> 11;
+        cout << "c=" << (float)c / 32767.0f << endl;
+    }
+
+    {
+        // q15 times q11
+        // q15 value
+        int16_t a = 0.0625 * 32767.0;
+        // q11 value
+        int16_t b = 1 * (32767.0 / 16.0);
+        cout << "b (q11)=" << b << endl;
+        // Notice here we shift right by 15 - 4 = 11
+        int16_t c = ((int32_t)a * (int32_t)b) >> 11;
+        cout << "c=" << (float)c / 32767.0f << endl;
+    }
+}
+
+
 int main(int,const char**) {
-    
+
+    math1();
+
     CircularQueuePointers ptrs(4);
     assert(ptrs.getDepth() == 0);
     assert(ptrs.getFree() == 3);
