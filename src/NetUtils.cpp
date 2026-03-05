@@ -235,6 +235,28 @@ bool equalIPAddr(const sockaddr& a0, const sockaddr& a1) {
     return false;
 }
 
+bool equalIPAddrAndPort(const sockaddr& a0, const sockaddr& a1) {
+    if (a0.sa_family != a1.sa_family)
+        return false;
+    if (a0.sa_family == AF_INET)
+        // These address are unsigned long
+        return ((sockaddr_in*)&a0)->sin_addr.s_addr == 
+               ((sockaddr_in*)&a1)->sin_addr.s_addr &&
+               ((sockaddr_in*)&a0)->sin_port == 
+               ((sockaddr_in*)&a1)->sin_port;
+    else if (a0.sa_family == AF_INET6)
+        // These addresses are unsigned char[16]
+        return strcmp(
+            (const char*)((sockaddr_in6*)&a0)->sin6_addr.s6_addr, 
+            (const char*)((sockaddr_in6*)&a1)->sin6_addr.s6_addr
+            ) == 0 &&
+            ((sockaddr_in6*)&a0)->sin6_port == 
+            ((sockaddr_in6*)&a1)->sin6_port;
+    else
+        assert(false);
+    return false;
+}
+
 void setIPAddr(sockaddr_storage& addr, const char* strAddr) {
     if (addr.ss_family == AF_INET)
         inet_pton(addr.ss_family, strAddr, &(((sockaddr_in&)addr).sin_addr));

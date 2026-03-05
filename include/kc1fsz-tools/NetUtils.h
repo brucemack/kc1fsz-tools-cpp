@@ -82,6 +82,11 @@ int parseIPAddrAndPort(const char* addrAndPort, sockaddr_storage& addr);
 bool equalIPAddr(const sockaddr& a0, const sockaddr& a1);
 
 /**
+ * @returns true if the addresses/ports are the same 
+ */
+bool equalIPAddrAndPort(const sockaddr& a0, const sockaddr& a1);
+
+/**
  * Converts an IP address in string format. Works for IPv4 and IPv6.
  */
 void setIPAddr(sockaddr_storage& addr, const char* strAddr);
