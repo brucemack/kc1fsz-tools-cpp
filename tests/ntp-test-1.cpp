@@ -16,13 +16,17 @@
 using namespace std;
 using namespace kc1fsz;
 
+// https://tf.nist.gov/tf-cgi/servers.cgi
 static const char* NTP_IP_ADDR = "129.6.15.28";
+
+// 0x1b 0001 1011 is LI=00, V=011 (version 3), MODE=011 (client)
 
 int query_1() {
 
-    const unsigned PACKET_SIZE = 128;
-    uint8_t packet[PACKET_SIZE];
-    int len = 0;
+    const unsigned PACKET_SIZE = 48;
+    uint8_t packet[PACKET_SIZE] = { 0 };
+    packet[0] = 0x1b;
+    int len = 48;
     cout << len << endl;
     if (len < 0)
         return -1;
