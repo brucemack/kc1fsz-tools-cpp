@@ -16,7 +16,14 @@
  */
 #pragma once
 
+#include <concepts>
+
+// ### REMOVE
+#include <iostream>
+
 #include "kc1fsz-tools/CircularQueuePointers.h"
+
+using namespace std;
 
 namespace kc1fsz {
 
@@ -59,12 +66,58 @@ public:
 
     unsigned getDepth() const { return _ptrs.getDepth(); }
 
+    bool isEmpty() const { return _ptrs.isEmpty(); }
+
+    unsigned getOverflows() const { return _ptrs.getOverflows(); }
+
+    // Specializations for speed for certain types
+    // Here we use the max contiguous concept to batch the pushes/pops. If the 
+    // push/pop wraps around the end of the circular space then we'll use two steps.
+
+    // #### TODO: FIGURE OUT IF THERE IS A MORE ELEGANT WAY TO SPECIALIZE FOR THIS CASE
+
+    void pushInt32(const int32_t* frame, unsigned frameLen) {
+
+        unsigned firstPart = std::min(_ptrs.getMaxContiguousPushLength(), frameLen);
+        if (firstPart)
+            memcpy(_space + _ptrs.writePtr(), frame, sizeof(int32_t) * firstPart);
+        _ptrs.push(firstPart);
+
+        if (!_ptrs.isFull() && firstPart < frameLen) {
+            unsigned secondPart = std::min(_ptrs.getMaxContiguousPushLength(), frameLen - firstPart);
+            if (secondPart)
+                memcpy(_space + _ptrs.writePtr(), frame + firstPart, sizeof(int32_t) * secondPart);
+            _ptrs.push(secondPart);
+        }
+    }
+
+    bool tryPopInt32(int32_t* frame, unsigned frameLen) {
+
+        if (getDepth() < frameLen)
+            return false;
+
+        unsigned firstPart = std::min(_ptrs.getMaxContiguousPopLength(), frameLen);
+        if (firstPart)
+            memcpy(frame, _space + _ptrs.readPtr(), sizeof(int32_t) * firstPart);
+        _ptrs.pop(firstPart);
+
+        if (!_ptrs.isEmpty() && firstPart < frameLen) {
+            unsigned secondPart = std::min(_ptrs.getMaxContiguousPopLength(), frameLen - firstPart);
+            if (secondPart)
+                memcpy(frame + firstPart, _space + _ptrs.readPtr(), sizeof(int32_t) * secondPart);
+            _ptrs.pop(secondPart);
+        }
+
+        return true;
+    }
+
 private:
 
     T* _space;
-    unsigned _fillTrigger;
     CircularQueuePointers _ptrs;
-    bool _triggered = false;
+    const unsigned _fillTrigger;
+    volatile bool _triggered = false;
 };
+
 
 }

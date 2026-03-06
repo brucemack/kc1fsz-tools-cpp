@@ -1,0 +1,163 @@
+#include <iostream>
+#include <cassert>
+#include <cstring>
+
+#include "kc1fsz-tools/CircularQueuePointers.h"
+#include "kc1fsz-tools/CircularQueueWithTrigger.h"
+
+using namespace std;
+using namespace kc1fsz;
+
+
+static void math1() {
+    {
+        // q15 times q15
+        int16_t a = 0.25 * 32767.0;
+        int16_t b = 0.25 * 32767.0;
+        int16_t c = ((int32_t)a * (int32_t)b) >> 15;
+        cout << "c=" << (float)c / 32767.0f << endl;
+    }
+
+    {
+        // q15 times q13
+        // q15 value
+        int16_t a = 0.25 * 32767.0;
+        // q13 value
+        int16_t b = 2.0 * (32767.0 / 4.0);
+        // Notice here we shift right by 15 - 2 = 13
+        int16_t c = ((int32_t)a * (int32_t)b) >> 13;
+        cout << "c=" << (float)c / 32767.0f << endl;
+    }
+
+    {
+        // q15 times q10
+        // q15 value
+        int16_t a = 0.25 * 32767.0;
+        // q10 value
+        int16_t b = 2.0 * (32767.0 / 32.0);
+        // Notice here we shift right by 15 - 5 = 10
+        int16_t c = ((int32_t)a * (int32_t)b) >> 10;
+        cout << "c=" << (float)c / 32767.0f << endl;
+    }
+
+    {
+        // q15 times q11
+        // q15 value
+        int16_t a = 0.0625 * 32767.0;
+        // q11 value
+        int16_t b = 16.0 * (32767.0 / 16.0);
+        // Notice here we shift right by 15 - 4 = 11
+        int16_t c = ((int32_t)a * (int32_t)b) >> 11;
+        cout << "c=" << (float)c / 32767.0f << endl;
+    }
+
+    {
+        // q15 times q11
+        // q15 value
+        int16_t a = 0.0625 * 32767.0;
+        // q11 value
+        int16_t b = 1 * (32767.0 / 16.0);
+        cout << "b (q11)=" << b << endl;
+        // Notice here we shift right by 15 - 4 = 11
+        int16_t c = ((int32_t)a * (int32_t)b) >> 11;
+        cout << "c=" << (float)c / 32767.0f << endl;
+    }
+}
+
+
+int main(int,const char**) {
+
+    math1();
+
+    CircularQueuePointers ptrs(4);
+    assert(ptrs.getDepth() == 0);
+    assert(ptrs.getFree() == 3);
+    ptrs.push();
+    ptrs.push();
+    ptrs.push();
+    assert(ptrs.isFull());
+    ptrs.push();
+    assert(ptrs.isFault());
+    ptrs.reset();
+
+    ptrs.push(3);
+    assert(ptrs.isFull());
+    assert(!ptrs.isFault());
+
+    // Overflow
+    ptrs.reset();
+    ptrs.push(4);
+    assert(ptrs.isFull());
+    assert(ptrs.isFault());
+
+    // Make sure the push works with a wrap
+    ptrs.reset();
+    ptrs.push();
+    ptrs.push();
+    ptrs.pop();
+    ptrs.pop();
+    assert(!ptrs.isFull());
+    assert(!ptrs.isFault());
+    ptrs.push(3);
+    assert(ptrs.isFull());
+    assert(!ptrs.isFault());
+
+    // Test the run size
+    ptrs.reset();
+    assert(ptrs.getMaxContiguousPushLength() == 3);
+    ptrs.push();
+    ptrs.push();
+    assert(ptrs.getMaxContiguousPushLength() == 2);
+    ptrs.pop();
+    ptrs.pop();
+    assert(ptrs.getMaxContiguousPushLength() == 2);
+    ptrs.push();
+    ptrs.pop();
+    assert(ptrs.getMaxContiguousPushLength() == 1);
+
+    int32_t space[4];
+    CircularQueueWithTrigger<int32_t> q(space, 4, 1);
+    int32_t temp[5] = { 0, 1, 2, 3, 4 };
+    q.pushInt32(temp, 2);
+    assert(q.getDepth() == 2);
+
+    int32_t temp2[4];
+    q.tryPop(temp2, 2);
+    assert(q.getDepth() == 0);
+
+    // This will cause two writes because of the wrap
+    q.pushInt32(temp + 2, 3);
+    assert(q.getDepth() == 3);
+    assert(space[2] == 2);
+    assert(space[3] == 3);
+    assert(space[0] == 4);
+
+    // This will cause two reads because of the wrap
+    q.tryPopInt32(temp2, 3);
+    assert(temp2[0] == 2);
+    assert(temp2[1] == 3);
+    assert(temp2[2] == 4);
+    assert(q.getDepth() == 0);
+
+    // Repeat the operation to makes sure all pointers are right
+    q.pushInt32(temp + 2, 3);
+    assert(q.getDepth() == 3);
+    // Notice placement is different
+    assert(space[1] == 2);
+    assert(space[2] == 3);
+    assert(space[3] == 4);
+
+    q.tryPopInt32(temp2, 3);
+    assert(temp2[0] == 2);
+    assert(temp2[1] == 3);
+    assert(temp2[2] == 4);
+    assert(q.isEmpty());
+
+    // Read tests
+    ptrs.reset();
+    assert(ptrs.getMaxContiguousPopLength() == 0);
+    ptrs.push(3);
+    assert(ptrs.getMaxContiguousPopLength() == 3);
+
+
+}

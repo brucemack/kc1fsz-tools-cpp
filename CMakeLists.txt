@@ -101,3 +101,14 @@ add_executable(net-test-1
 target_include_directories(net-test-1 PRIVATE src)
 target_include_directories(net-test-1 PRIVATE include)
 
+# ------ unit-test-1 ---------------------------------------------------------
+
+add_executable(unit-test-1
+  tests/unit-test-1.cpp
+  src/Common.cpp
+) 
+
+target_include_directories(unit-test-1 PRIVATE src)
+target_include_directories(unit-test-1 PRIVATE include)
+
+

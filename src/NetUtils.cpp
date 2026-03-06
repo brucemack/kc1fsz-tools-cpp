@@ -38,10 +38,10 @@ namespace kc1fsz {
 
 void formatIP4Address(uint32_t addr, char* dottedAddr, uint32_t dottedAddrSize) {
     // This is the high-order part of the address.
-    uint32_t a = (addr & 0xff000000) >> 24;
-    uint32_t b = (addr & 0x00ff0000) >> 16;
-    uint32_t c = (addr & 0x0000ff00) >> 8;
-    uint32_t d = (addr & 0x000000ff);
+    unsigned a = (addr & 0xff000000) >> 24;
+    unsigned b = (addr & 0x00ff0000) >> 16;
+    unsigned c = (addr & 0x0000ff00) >> 8;
+    unsigned d = (addr & 0x000000ff);
     // BRM 2025-02-01 changed from %lu to resolve warning
     snprintf(dottedAddr, dottedAddrSize, "%u.%u.%u.%u", a, b, c, d);
 }
@@ -230,6 +230,28 @@ bool equalIPAddr(const sockaddr& a0, const sockaddr& a1) {
             (const char*)((sockaddr_in6*)&a0)->sin6_addr.s6_addr, 
             (const char*)((sockaddr_in6*)&a1)->sin6_addr.s6_addr
             ) == 0;
+    else
+        assert(false);
+    return false;
+}
+
+bool equalIPAddrAndPort(const sockaddr& a0, const sockaddr& a1) {
+    if (a0.sa_family != a1.sa_family)
+        return false;
+    if (a0.sa_family == AF_INET)
+        // These address are unsigned long
+        return ((sockaddr_in*)&a0)->sin_addr.s_addr == 
+               ((sockaddr_in*)&a1)->sin_addr.s_addr &&
+               ((sockaddr_in*)&a0)->sin_port == 
+               ((sockaddr_in*)&a1)->sin_port;
+    else if (a0.sa_family == AF_INET6)
+        // These addresses are unsigned char[16]
+        return strcmp(
+            (const char*)((sockaddr_in6*)&a0)->sin6_addr.s6_addr, 
+            (const char*)((sockaddr_in6*)&a1)->sin6_addr.s6_addr
+            ) == 0 &&
+            ((sockaddr_in6*)&a0)->sin6_port == 
+            ((sockaddr_in6*)&a1)->sin6_port;
     else
         assert(false);
     return false;
