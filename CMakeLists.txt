@@ -111,4 +111,15 @@ add_executable(unit-test-1
 target_include_directories(unit-test-1 PRIVATE src)
 target_include_directories(unit-test-1 PRIVATE include)
 
+# ------ ntp-test-1 ---------------------------------------------------------
+# Target: Host
 
+add_executable(ntp-test-1
+  tests/ntp-test-1.cpp
+  src/Common.cpp
+  src/NetUtils.cpp
+  src/linux/StdClock.cpp
+) 
+
+target_include_directories(ntp-test-1 PRIVATE src)
+target_include_directories(ntp-test-1 PRIVATE include)
