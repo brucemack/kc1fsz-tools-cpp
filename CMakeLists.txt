@@ -118,6 +118,7 @@ add_executable(ntp-test-1
   tests/ntp-test-1.cpp
   src/Common.cpp
   src/NetUtils.cpp
+  src/NTPUtils.cpp
   src/linux/StdClock.cpp
 ) 
 

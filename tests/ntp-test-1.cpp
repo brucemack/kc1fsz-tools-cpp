@@ -9,11 +9,14 @@
 #include <iostream>
 #include <cstring>
 #include <cassert>
+#include <cmath>
 
 #include "kc1fsz-tools/Common.h"
 #include "kc1fsz-tools/Log.h"
 #include "kc1fsz-tools/linux/StdClock.h"
 #include "kc1fsz-tools/NetUtils.h"
+#include "kc1fsz-tools/NTPUtils.h"
+
 
 #define NTP_SAMPLE_COUNT (8)
 
@@ -23,8 +26,6 @@ using namespace kc1fsz;
 // https://tf.nist.gov/tf-cgi/servers.cgi
 static const char* NTP_IP_ADDR = "129.6.15.28";
 static unsigned NTP_IP_PORT = 123;
-
-static uint32_t EpochAdjustment = 2208988800;
 
 // 0x1b 0001 1011 is LI=00, V=011 (version 3), MODE=011 (client)
 // 0x23 0010 0011 is LI=00, V=100 (version 4), MODE=011 (client)
@@ -80,41 +81,10 @@ void packNtpTime(uint64_t us, uint8_t* packet) {
     pack_uint32_be(fraction, packet + 4);
 }
 
-/**
- * @returns the clock offset using the NTP time format. A positive number
- * means that the reference time is ahead. The result is signed.
- */
-int64_t calcOffset(const uint8_t* packet, uint64_t now) {
-    int64_t t1 = unpackNtpTime(packet + 24);
-    int64_t t2 = unpackNtpTime(packet + 32);
-    int64_t t3 = unpackNtpTime(packet + 40);
-    int64_t t4 = now;
-    return ((t2 - t1) + (t3 - t4)) / 2;
-}
-
-/**
- * @returns The round-trip of the NTP query using the NTP time format.
- */
-int64_t calcDelay(const uint8_t* packet, uint64_t now) {
-    uint64_t t1 = unpackNtpTime(packet + 24);
-    uint64_t t2 = unpackNtpTime(packet + 32);
-    uint64_t t3 = unpackNtpTime(packet + 40);
-    uint64_t t4 = now;
-    return (t4 - t1) - (t3 - t2);
-}
-
-uint64_t usToNtpTime(uint64_t us) {
-    uint32_t originS = (us / 1000000) + EpochAdjustment;
-    uint64_t originUs = us;
-    // Find the remainder
-    originUs = originUs % 1000000;
-    originUs = us2ntpfraction(originUs);
-    return (((uint64_t)originS) << 32) | originUs;
-}
 
 struct NTPSample {
-    uint64_t offset = 0;
-    uint64_t delay = 0;
+    int64_t offset = 0;
+    int64_t delay = 0;
     // Infinity is 16.0s
     uint32_t dispersion = 16 << 16;
 };
@@ -131,6 +101,22 @@ void ageDispersions(NTPSample* samples, unsigned sampleCount, uint32_t ageShort)
         // Don't touch the "infinity" dispersions
         if (samples[i].dispersion != (16 << 16)) 
             samples[i].dispersion += ageShort;
+}
+
+static void test_2() {
+    // This reading was taken on 2026-03-08
+    uint64_t nowUs = (1773007577LL * 1000000LL) + 1;
+    cout << nowUs << endl;
+    uint64_t nowNtp = NTPUtils::usToNtpTime(nowUs);
+    assert(nowNtp == 0xed587159000010c6);
+    /*
+    uint8_t buf[8];
+    pack_uint64_be(nowNtp, buf);
+    Log log;
+    log.infoDump("Test", buf, 8);
+    */
+    uint64_t nowUs_back = NTPUtils::ntpTimeToUs(nowNtp);
+    assert(abs((int64_t)nowUs_back - (int64_t)nowUs) <= 1);
 }
 
 int query_1() {
@@ -182,12 +168,12 @@ int query_1() {
             lastQuery = clock.timeMs();
 
             packet[0] = 0x23;
-            uint64_t now = usToNtpTime(clock.timeUs());
+            uint64_t now = NTPUtils::usToNtpTime(clock.timeUs());
             packNtpTime(now, packet + 24);
             // RFC5905 page 29: "A packet is bogus if the origin timestamp T1 in the packet
             // does not match the xmt state variable T1.
             packNtpTime(now, packet + 40);
-            log.infoDump("Send", packet, len);
+            //log.infoDump("Send", packet, len);
 
             // Send the query to a NTP server
             struct sockaddr_in dest_addr;
@@ -213,9 +199,9 @@ int query_1() {
         if (rc > 0) {
             // Immediately record T4
             uint64_t nowUs = clock.timeUs();
-            uint64_t now = usToNtpTime(nowUs);
+            uint64_t now = NTPUtils::usToNtpTime(nowUs);
 
-            log.infoDump("Receive", readBuffer, rc);
+            //log.infoDump("Receive", readBuffer, rc);
 
             // The offset (theta) represents the
             // maximum-likelihood time offset of the server clock relative to the
@@ -224,15 +210,16 @@ int query_1() {
             // the maximum error inherent in the measurement. 
 
             // Do the offset calc
-            double offset = calcOffset(readBuffer, now);
-            double delay = calcDelay(readBuffer, now);
+            double offset = NTPUtils::calcOffset(readBuffer, now);
+            double delay = NTPUtils::calcDelay(readBuffer, now);
             offset = offset / (double)(1LL << 32);
-            cout << "Offset " << offset << endl;
+            //cout << "Offset " << offset << endl;
             delay = delay / (double)(1LL << 32);
-            cout << "Delay " << delay << endl;       
-            double disp = unpackNtpTimeShort(readBuffer + 8);
+            //cout << "Delay " << delay << endl;       
+
+            double disp = unpack_uint32_be(readBuffer + 8);
             disp /= (double(1 << 16));
-            cout << "Server dispersion " << disp << endl;       
+            //cout << "Server dispersion " << disp << endl;       
 
             // Age the existing dispersion data
             uint32_t secondsElapsed = (nowUs - lastResponseUs) / 1000000;
@@ -244,19 +231,20 @@ int query_1() {
 
             // Load up the shift register 
             shift(Samples, NTP_SAMPLE_COUNT);
-            Samples[0].offset = calcOffset(readBuffer, now);
-            Samples[0].delay = calcDelay(readBuffer, now);
-            Samples[0].dispersion = unpackNtpTimeShort(readBuffer + 8);
+            Samples[0].offset = NTPUtils::calcOffset(readBuffer, now);
+            Samples[0].delay = NTPUtils::calcDelay(readBuffer, now);
+            // ### TODO: NEED TO INCLUDE LOCAL DISPERSION
+            Samples[0].dispersion = unpack_uint32_be(readBuffer + 8);
 
             // Display dispersions
-            for (unsigned i = 0; i < NTP_SAMPLE_COUNT; i++)
-                printf("%u %08X\n", i, Samples[i].dispersion);
+            //for (unsigned i = 0; i < NTP_SAMPLE_COUNT; i++)
+            //    printf("%u %08X\n", i, Samples[i].dispersion);
 
             // Find the smallest delay
-            uint64_t minDelay = -1;
+            int64_t minDelay = 1000000;
             unsigned minIx = 0;
             for (unsigned i = 0; i < NTP_SAMPLE_COUNT; i++) {
-                if (Samples[i].dispersion = (16 << 16))
+                if (Samples[i].dispersion == (16 << 16))
                     break;
                 if (Samples[i].delay < minDelay) {
                     minDelay = Samples[i].delay;
@@ -264,11 +252,23 @@ int query_1() {
                 }
             }
 
-            double selectedOffset = Samples[minIxcalcOffset(readBuffer, now);
-            double delay = calcDelay(readBuffer, now);
-            offset = offset / (double)(1LL << 32);
-            cout << "Offset " << offset << endl;
+            double selectedOffset = Samples[minIx].offset;
+            selectedOffset = selectedOffset / (double)(1LL << 32);
+            cout << "Selected offset " << minIx << " " << selectedOffset << endl;
 
+            // Compute the jitter
+            double jitterTotal = 0;
+            unsigned jitterCount = 0;
+            for (unsigned i = 0; i < NTP_SAMPLE_COUNT; i++) {
+                if (Samples[i].dispersion != (16 << 16)) {
+                    double offset = Samples[i].offset;
+                    offset = offset / (double)(1LL << 32);
+                    jitterTotal += std::pow(offset - selectedOffset, 2.0);
+                    jitterCount++;
+                }
+            }            
+            double jitter = std::sqrt(jitterTotal / (double)jitterCount);
+            cout << "Jitter " << jitter << endl;
 
             lastResponseUs = nowUs;
         }
@@ -276,5 +276,6 @@ int query_1() {
 }
 
 int main(int, const char**) {
-    query_1();
+    //query_1();
+    test_2();
 }

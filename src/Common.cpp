@@ -307,6 +307,19 @@ int16_t unpack_int16_be(const uint8_t* in) {
     return (in[0] << 8) | in[1];
 }
 
+void pack_uint64_be(uint64_t v, uint8_t* out) {
+    uint32_t ms = v >> 32;
+    uint32_t ls = v;
+    pack_uint32_be(ms, out);
+    pack_uint32_be(ls, out + 4);
+}
+
+uint64_t unpack_uint64_be(const uint8_t* in) {
+    uint32_t ms = unpack_uint32_be(in);
+    uint32_t ls = unpack_uint32_be(in + 4);
+    return ((uint64_t)ms << 32) | ls;
+}
+
 void asciiHexToBin(const char* hex, unsigned hexLen, uint8_t* bin, unsigned binLen) {
     assert(hexLen == 2 * binLen);
     const char* p = hex;
