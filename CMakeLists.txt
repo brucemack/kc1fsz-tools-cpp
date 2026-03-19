@@ -124,3 +124,11 @@ add_executable(ntp-test-1
 
 target_include_directories(ntp-test-1 PRIVATE src)
 target_include_directories(ntp-test-1 PRIVATE include)
+
+# ------ udp-recv ---------------------------------------------------------
+
+add_executable(udp-recv
+  tests/udp-recv.cpp
+) 
+
+target_include_directories(udp-recv PRIVATE src)
