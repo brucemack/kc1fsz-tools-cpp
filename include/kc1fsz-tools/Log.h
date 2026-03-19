@@ -36,8 +36,24 @@ namespace kc1fsz {
 class Log {
 public:
 
-    Log() { }
-    Log(Clock* clock) { _clock = clock; }
+    /**
+     * @param outCb An optional callback that will be used to render the log
+     * output. If not specified then standard output will be used. CAREFUL:
+     * THIS MAY BE PERFORMANCE SENSITIVE.
+     */
+    Log(void (*outCb)(const char* sev, const char* dt, const char* msg) = 0)
+    :   _outCb(outCb) {
+    }
+
+    /**
+     * @param outCb An optional callback that will be used to render the log
+     * output. If not specified then standard output will be used. CAREFUL:
+     * THIS MAY BE PERFORMANCE SENSITIVE.
+     */
+    Log(Clock* clock, void (*outCb)(const char* sev, const char* dt, const char* msg) = 0)
+    :   _clock(clock),
+        _outCb(outCb) {
+    }
 
     virtual void info(const char* format, ...) {
         if (!_enabled)
@@ -134,12 +150,17 @@ protected:
 protected:
 
     virtual void _out(const char* sev, const char* dt, const char* msg) {
-        std::cout << sev << ": " << dt << " " << msg << std::endl;
+        if (_outCb)
+            _outCb(sev, dt, msg);
+        else 
+            std::cout << sev << ": " << dt << " " << msg << std::endl;
     }
 
 private:
 
     Clock* _clock = 0;
+    // An optional callback that is used to produce the output.
+    void (*_outCb)(const char* sev, const char* dt, const char* msg) = 0;
     bool _enabled = true;
 };
 }
