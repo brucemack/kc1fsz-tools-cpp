@@ -24,8 +24,10 @@ int tokenizeNMEASentence(const char* str, char parsedTokens[][16], unsigned maxT
 }
 
 int parseTimeFromGPRMC(const char tokens[][16], unsigned tokenCount, struct tm* t) {
+
     memset(t, 0, sizeof(struct tm));
-    char temp[8];
+    char temp[3];
+    
     if (strlen(tokens[1]) < 6)
         return -1;
     // Seconds
