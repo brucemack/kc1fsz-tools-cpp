@@ -4,10 +4,10 @@
 
 #include "kc1fsz-tools/CircularQueuePointers.h"
 #include "kc1fsz-tools/CircularQueueWithTrigger.h"
+#include "kc1fsz-tools/GPSUtils.h"
 
 using namespace std;
 using namespace kc1fsz;
-
 
 static void math1() {
     {
@@ -65,9 +65,7 @@ static void math1() {
 }
 
 
-int main(int,const char**) {
-
-    math1();
+static void queue1() {
 
     CircularQueuePointers ptrs(4);
     assert(ptrs.getDepth() == 0);
@@ -158,6 +156,26 @@ int main(int,const char**) {
     assert(ptrs.getMaxContiguousPopLength() == 0);
     ptrs.push(3);
     assert(ptrs.getMaxContiguousPopLength() == 3);
+}
 
+static void gps1() {
 
+    const char* sent1 = "$GNRMC,183722.000,A,4218.20250,N,07118.07083,W,0.00,152.45,240326,,,A,V*1A";
+    char tokens[10][16];
+    int tokenCount = tokenizeNMEASentence(sent1, tokens, 10, 16);
+    assert(tokenCount == 10);
+
+    struct tm tm_out;
+    int rc = parseTimeFromGPRMC(tokens, tokenCount, &tm_out);
+    assert(rc == 0);
+    assert(tm_out.tm_year == 126);
+
+    time_t t = mktime(&tm_out);
+    assert(t == 1774395442L);
+}
+
+int main(int,const char**) {
+    math1();
+    queue1();
+    gps1();
 }
