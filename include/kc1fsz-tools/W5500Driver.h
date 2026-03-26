@@ -24,6 +24,7 @@ public:
     using txDmaStartCb = std::function<void(uint8_t* txPtr, unsigned len)>;
 
     W5500Driver(Log& log, 
+        const uint8_t* mac,
         writePinCb writeResetPin, writePinCb writeSelectPin,
         txRxDmaStartCb txRxDmaStart,
         txDmaStartCb txDmaStart,
@@ -37,7 +38,8 @@ public:
 
     bool isFaulted() const { return _state == State::STATE_FAULT; }
 
-    bool isUp() const { return _state == State::STATE_RUNNING; }
+    bool isUp() const { return _state == State::STATE_RUNNING || _state == State::STATE_SEND_TRANSFERING || 
+        _state == State::STATE_SENDING; }
 
     bool isDmaRunning() const { return _dmaState == DmaState::DMASTATE_TXRX_RUNNING || 
         _dmaState == DmaState::DMASTATE_TX_RUNNING; }
@@ -67,7 +69,9 @@ private:
         STATE_RUNNING,
         STATE_VERSION_CHECK,
         STATE_OPENING,
-        STATE_STATUS_CHECK
+        STATE_STATUS_CHECK,
+        STATE_SEND_TRANSFERING,
+        STATE_SENDING
     };
 
     enum DmaState {
@@ -82,6 +86,7 @@ private:
     DmaState _dmaState = DmaState::DMASTATE_IDLE;
 
     Log& _log;
+    const uint8_t* _mac;
     writePinCb _writeResetPin;
     writePinCb _writeSelectPin;
     txRxDmaStartCb _txRxDmaStart;
@@ -90,6 +95,8 @@ private:
     unsigned _rxDmaBufferSize;
     uint8_t* _txDmaBuffer;
     unsigned _txDmaBufferSize;
+
+    uint16_t _Sn_TX_WR;
 };
 
 }
