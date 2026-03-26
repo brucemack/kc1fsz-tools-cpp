@@ -5,9 +5,14 @@
 #include "kc1fsz-tools/CircularQueuePointers.h"
 #include "kc1fsz-tools/CircularQueueWithTrigger.h"
 #include "kc1fsz-tools/GPSUtils.h"
+#include "kc1fsz-tools/W5500Driver.h"
 
 using namespace std;
 using namespace kc1fsz;
+
+static void assertClose(float a, float b, float tol) {
+    assert(abs(a - b) < tol);
+}
 
 static void math1() {
     {
@@ -15,7 +20,7 @@ static void math1() {
         int16_t a = 0.25 * 32767.0;
         int16_t b = 0.25 * 32767.0;
         int16_t c = ((int32_t)a * (int32_t)b) >> 15;
-        cout << "c=" << (float)c / 32767.0f << endl;
+        assertClose((float)c / 32767.0f, 0.0625, 0.001);
     }
 
     {
@@ -26,7 +31,7 @@ static void math1() {
         int16_t b = 2.0 * (32767.0 / 4.0);
         // Notice here we shift right by 15 - 2 = 13
         int16_t c = ((int32_t)a * (int32_t)b) >> 13;
-        cout << "c=" << (float)c / 32767.0f << endl;
+        assertClose((float)c / 32767.0f, 0.5, 0.1);
     }
 
     {
@@ -37,7 +42,7 @@ static void math1() {
         int16_t b = 2.0 * (32767.0 / 32.0);
         // Notice here we shift right by 15 - 5 = 10
         int16_t c = ((int32_t)a * (int32_t)b) >> 10;
-        cout << "c=" << (float)c / 32767.0f << endl;
+        assertClose((float)c / 32767.0f, 0.5, 0.1);
     }
 
     {
@@ -48,7 +53,7 @@ static void math1() {
         int16_t b = 16.0 * (32767.0 / 16.0);
         // Notice here we shift right by 15 - 4 = 11
         int16_t c = ((int32_t)a * (int32_t)b) >> 11;
-        cout << "c=" << (float)c / 32767.0f << endl;
+        assertClose((float)c / 32767.0f, 1.0, 0.1);
     }
 
     {
@@ -57,13 +62,12 @@ static void math1() {
         int16_t a = 0.0625 * 32767.0;
         // q11 value
         int16_t b = 1 * (32767.0 / 16.0);
-        cout << "b (q11)=" << b << endl;
+        assert(b == 2047);
         // Notice here we shift right by 15 - 4 = 11
         int16_t c = ((int32_t)a * (int32_t)b) >> 11;
-        cout << "c=" << (float)c / 32767.0f << endl;
+        assertClose((float)c / 32767.0f, 0.0625, 0.001);
     }
 }
-
 
 static void queue1() {
 
@@ -174,8 +178,24 @@ static void gps1() {
     assert(t == 1774395442L);
 }
 
+// Testing W5500 chip driver
+static void w55001() {
+
+    W5500Driver driver(
+        [](bool b) {
+            cout << "Set ~RESET=" << b << endl;
+        },
+        [](bool b) {
+            cout << "Set ~SELECT=" << b << endl;
+        }
+    );
+
+    driver.init();
+}
+
 int main(int,const char**) {
     math1();
     queue1();
     gps1();
+    w55001();
 }
