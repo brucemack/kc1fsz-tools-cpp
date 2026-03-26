@@ -2,6 +2,7 @@
 #include <cassert>
 #include <cstring>
 
+#include "kc1fsz-tools/Log.h"
 #include "kc1fsz-tools/CircularQueuePointers.h"
 #include "kc1fsz-tools/CircularQueueWithTrigger.h"
 #include "kc1fsz-tools/GPSUtils.h"
@@ -181,16 +182,33 @@ static void gps1() {
 // Testing W5500 chip driver
 static void w55001() {
 
-    W5500Driver driver(
+    Log log;
+
+    uint8_t rxBuf[64];
+    uint8_t txBuf[64];
+
+    W5500Driver driver(log,
         [](bool b) {
             cout << "Set ~RESET=" << b << endl;
         },
         [](bool b) {
             cout << "Set ~SELECT=" << b << endl;
-        }
+        },
+        [](uint8_t* tx, uint8_t* rx, unsigned len) {
+            cout << "TXRX Start " << len << endl;
+            // Hard-code response
+            rx[3] = 0x04;
+        },
+        rxBuf, 64,
+        txBuf, 64
     );
 
-    driver.init();
+    driver.reset();
+    assert(driver.isDmaRunning());
+    driver.txRxDmaComplete();
+    driver.run();
+    assert(!driver.isDmaRunning());
+    assert(!driver.isFaulted());
 }
 
 int main(int,const char**) {
