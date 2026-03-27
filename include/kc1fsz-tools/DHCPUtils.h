@@ -23,14 +23,16 @@ namespace kc1fsz {
       
 /**
  * Creates a DHCP DISCOVER packet for the specified MAC address.
+ * @param mac MAC address in binary form (6 bytes)
  */
 int makeDiscover(const uint8_t* mac, uint16_t reqId, uint8_t* packet, unsigned packetCapacity);
 
 /**
  * Creates a DHCP REQUEST packet for the specified MAC address and IP address.
- *
+ * @param mac MAC address in binary form (6 bytes)
  * @param reqAddr4 The requested address in network byte ordering.
  */
 int makeRequest(const uint8_t* mac, uint16_t reqId, uint32_t reqAddr4, uint8_t* packet, unsigned packetCapacity);
+
     }
 }

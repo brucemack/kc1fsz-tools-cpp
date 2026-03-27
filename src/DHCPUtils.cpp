@@ -117,48 +117,34 @@ int makeDiscover(const uint8_t* mac, uint16_t reqId, uint8_t* packet, unsigned p
     // Transfer to packet buffer
     memcpy(packet + 14 + 20 + 8, &bootp_hdr, sizeof(bootp_hdr));
 
-    // BOOTP OPTIONS
+    // BOOTP OPTIONS (Variable Length)
 
     int used = 14 + 20 + 8 + sizeof(bootp_hdr);
     packetCapacity -= used;
-   
-    // DHCP Message Type (Request)
-    //used += addIE_uint8(0x35, 0x03, packet + used, packetCapacity);
+    int rc; 
+
     // DHCP Message Type (Discover)
-    used += addIE_uint8(0x35, 0x01, packet + used, packetCapacity);
-    if (used < 0)
+    rc = addIE_uint8(0x35, 0x01, packet + used, packetCapacity);
+    if (rc < 0)
         return -2;
-    packetCapacity -= used;
+    used += rc;
+    packetCapacity -= rc;
 
-    // Client identifier
-    char clientId[7];
-    clientId[0] = 0x01;
-    memcpy(clientId + 1, mac, 6);
-    used += addIE_str(0x3d, clientId, 7, packet + used, packetCapacity);
-    if (used < 0)
+    // Client identifier (Ethernet + MAC)
+    const char clientId[] = { 0x01, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] };
+    rc = addIE_str(0x3d, clientId, sizeof(clientId), packet + used, packetCapacity);
+    if (rc < 0)
         return -2;
-    packetCapacity -= used;
-
-    // Host Name
-    used += addIE_str(0x0c, "rtcm", packet + used, packetCapacity);
-    if (used < 0)
-        return -2;
-    packetCapacity -= used;
-
-    // CFQDN
-    char fqdn[] = { 0x0, 0x0, 0x0, 0x64, 0x65, 0x6c, 0x6c, 0x2d, 0x6c, 0x61, 0x70, 0x74, 0x6f, 0x70 };
-    used += addIE_str(0x51, fqdn, sizeof(fqdn), packet + used, packetCapacity);
-    if (used < 0)
-        return -2;
-    packetCapacity -= used;
+    used += rc;
+    packetCapacity -= rc;
 
     // Parameter request list
-    //char items[] = { 1, 3, 6, 15, 31, 33, 43, 44, 46, 47, 119, 121, 249, 252 };
     const char requestList[] = { 1, 3, 6 };
-    used += addIE_str(0x37, requestList, sizeof(requestList), packet + used, packetCapacity);
-    if (used < 0)
+    rc = addIE_str(0x37, requestList, sizeof(requestList), packet + used, packetCapacity);
+    if (rc < 0)
         return -2;
-    packetCapacity -= used;
+    used += rc;
+    packetCapacity -= rc;
 
     // End
     if (packetCapacity == 0)
@@ -166,37 +152,32 @@ int makeDiscover(const uint8_t* mac, uint16_t reqId, uint8_t* packet, unsigned p
     packet[used++] = 0xff;
     packetCapacity -= 1;
 
-    // Go back in fill in the lengths
+    // Go back in fill in the IP packet length
     // NOTE: We don't include the Ethernet header in the IP length
     pack_uint16_be(used - 14, ipHdr + 2);
+
+    // Go back in fill in the UDP packet length
     // NOTE: We don't include the Ethernet header or the IP header in the UDP length
     pack_uint16_be(used - 14 - 20, udpHdr + 4);
 
     // Got back and fill in the IP checksums
-    uint16_t cs = ipChecksum3(ipHdr, 20, 0, 0, 0, 0);
-    ipHdr[10] = cs >> 8;
-    ipHdr[11] = cs;
+    pack_uint16_be(ipChecksum3(ipHdr, 20, 0, 0, 0, 0), ipHdr + 10);
 
     // Go back and fill in the UDP checksum. 
-
-    // Populate a "pseudo header" with some stuff from the IP header
-    uint8_t phdr[12];
+    // Populate a "pseudo header" with some stuff from the IP header that gets
+    // factored into the UDP checksum calculation.
+    uint8_t phdr[12] = { 0 };
     // Source address
     pack_uint32_be(0, phdr);
     // Dest address
     pack_uint32_be(0xffffffff, phdr + 4);
-    // Zero
-    phdr[8] = 0;
     // Protocol (UDP)
     phdr[9] = 0x11;
     // NOTE: We don't include the Ethernet header or the IP header in the UDP length
     pack_uint16_be(used - 14 - 20, phdr + 10);
-
-    // Checksum spans pseudo header, UDP header, and UDP payload
-    cs = ipChecksum3(phdr, sizeof(phdr), udpHdr, 8, 
-        packet + 14 + 20 + 8, used - 14 - 20 - 8);
-    udpHdr[6] = cs >> 8;
-    udpHdr[7] = cs;
+    // UDP checksum spans pseudo header, UDP header, and UDP payload
+    pack_uint16_be(ipChecksum3(phdr, sizeof(phdr), udpHdr, 8, 
+        packet + 14 + 20 + 8, used - 14 - 20 - 8), udpHdr + 6);
 
     return used;
 }
