@@ -7,34 +7,54 @@
 
 #include "kc1fsz-tools/W5500Driver.h"
 #include "kc1fsz-tools/Log.h"
+#include "kc1fsz-tools/Clock.h"
+
+// The maximum amount of time that can pass without proactively checking
+// for receive activity in the chip.
+#define RX_CHECK_INTERVAL_MS (500)
 
 namespace kc1fsz {
 
-W5500Driver::W5500Driver(Log& log, 
+W5500Driver::W5500Driver(Log& log, Clock& clock,
     const uint8_t* mac,
     writePinCb writeResetPin, 
     writePinCb writeSelectPin,
     txRxDmaStartCb txRxDmaStart,
-    txDmaStartCb txDmaStart,
+    packetCb txDmaStart,
+    packetCb rxEvent,
     uint8_t* rxDmaBuffer, unsigned rxDmaBufferSize,
     uint8_t* txDmaBuffer, unsigned txDmaBufferSize)  
 :   _log(log),
+    _clock(clock),
     _mac(mac),
     _writeResetPin(writeResetPin), _writeSelectPin(writeSelectPin),
     _txRxDmaStart(txRxDmaStart),
     _txDmaStart(txDmaStart),
+    _rxEvent(rxEvent),
     _rxDmaBuffer(rxDmaBuffer), _rxDmaBufferSize(rxDmaBufferSize),
     _txDmaBuffer(txDmaBuffer), _txDmaBufferSize(txDmaBufferSize) {
 }
 
 void W5500Driver::reset() {
-    _dmaState = DmaState::DMASTATE_IDLE;
+
+    _state = State::STATE_IDLE;
+    _dmaRunning = false;
+    _rxPending = false;
+    _rxTransferSize = 0;
+    _lastRxCheckMs = 0;
+    _rxAccUsed = 0;
+
     // Chip select high
     _writeSelectPin(true);
+
     // Reset the chip
     _writeResetPin(true);
     _writeResetPin(false);
     _writeResetPin(true);
+
+    // Reset the shadow registers back to zero
+    _Sn_TX_WR = 0;
+    _Sn_RX_RD = 0;
 
     // Read the version
     _txDmaBuffer[0] = 0;
@@ -43,23 +63,20 @@ void W5500Driver::reset() {
     _txDmaBuffer[2] = 0b00000001;
     // Dummy
     _txDmaBuffer[3] = 0;
-    memset(_rxDmaBuffer, 0, 4);
 
     // Chip select 
     _writeSelectPin(false);
     _txRxDmaStart(_txDmaBuffer, _rxDmaBuffer, 4);
+    _dmaRunning = true;
 
     _state = State::STATE_VERSION_CHECK;
-    _dmaState = DmaState::DMASTATE_TXRX_RUNNING;
-
-    _Sn_TX_WR = 0;
 }
 
 void W5500Driver::run() {
-    if (_state == State::STATE_VERSION_CHECK) {
-        if (_dmaState == DmaState::DMASTATE_TXRX_COMPLETE) {
 
-            _dmaState = DmaState::DMASTATE_IDLE;
+    if (_state == State::STATE_VERSION_CHECK) {
+        if (!_dmaRunning) {
+
             _writeSelectPin(true);
 
             if (_rxDmaBuffer[3] == 0x04) {
@@ -122,20 +139,18 @@ void W5500Driver::run() {
                 // Chip select 
                 _writeSelectPin(false);
                 _txDmaStart(_txDmaBuffer, len);
+                _dmaRunning = true;
 
                 _state = State::STATE_OPENING;
-                _dmaState = DmaState::DMASTATE_TX_RUNNING;
             } 
             else {
-                _log.info("Version check bad");
                 _state = State::STATE_FAULT;
             }
         }
     }
     else if (_state == State::STATE_OPENING) {
-        if (_dmaState == DmaState::DMASTATE_TX_COMPLETE) {
+        if (!_dmaRunning) {
 
-            _dmaState = DmaState::DMASTATE_IDLE;
             _writeSelectPin(true);
 
             // Ask for status
@@ -151,30 +166,26 @@ void W5500Driver::run() {
             // Chip select 
             _writeSelectPin(false);
             _txRxDmaStart(_txDmaBuffer, _rxDmaBuffer, 4);
+            _dmaRunning = true;
 
-            _dmaState = DmaState::DMASTATE_TXRX_RUNNING;
             _state = State::STATE_STATUS_CHECK;
         }
     }
     else if (_state == State::STATE_STATUS_CHECK) {
-        if (_dmaState == DmaState::DMASTATE_TXRX_COMPLETE) {
-
-            _dmaState = DmaState::DMASTATE_IDLE;
+        if (!_dmaRunning) {
+            
             _writeSelectPin(true);
 
             if (_rxDmaBuffer[3] == 0x42) {
                 _state = State::STATE_RUNNING;
             }
             else {
-                _log.info("Status check bad");
                 _state = State::STATE_FAULT;
             }
         }
     }
     else if (_state == State::STATE_SEND_TRANSFERING) {
-        if (_dmaState == DmaState::DMASTATE_TX_COMPLETE) {
-
-            _dmaState = DmaState::DMASTATE_IDLE;
+        if (!_dmaRunning) {
 
             // Very important! This terminates the variable length transfer
             _writeSelectPin(true);
@@ -201,55 +212,196 @@ void W5500Driver::run() {
             // Chip select 
             _writeSelectPin(false);
             _txDmaStart(_txDmaBuffer, 9);
+            _dmaRunning = true;
 
             _state = State::STATE_SENDING;
-            _dmaState = DmaState::DMASTATE_TX_RUNNING;
         }
     }
     else if (_state == State::STATE_SENDING) {
-        if (_dmaState == DmaState::DMASTATE_TX_COMPLETE) {
+        if (!_dmaRunning) {
+            _writeSelectPin(true);
+            _state = State::STATE_RUNNING;
+        }
+    }
+    else if (_state == State::STATE_RECEIVE_CHECK) {
+        if (!_dmaRunning) {
 
-            _dmaState = DmaState::DMASTATE_IDLE;
             _writeSelectPin(true);
 
-            _log.info("Sent");
+            // How many bytes are pending in the chip?
+            // Bytes 0-2 are dummy, the data is in big-endian format
+            uint16_t rxRsr = ((uint16_t)_rxDmaBuffer[3] << 8) | _rxDmaBuffer[4];
+            if (rxRsr > 0) {
 
+                _rxTransferSize = rxRsr;
+
+                // Schedule the transfer of the new data from the W5500 back into 
+                // the local DMA buffer.
+                unsigned len = 0;
+                // Read data from RX buffer
+                _txDmaBuffer[len++] = (_Sn_RX_RD >> 8) & 0xff;
+                _txDmaBuffer[len++] = (_Sn_RX_RD & 0xff);
+                // Block 00011, R (0), Variable Length (00)
+                _txDmaBuffer[len++] = 0b00011000;
+                // Assume space for the data itself
+                len += rxRsr;
+
+                // Chip select 
+                _writeSelectPin(false);
+
+                _txRxDmaStart(_txDmaBuffer, _rxDmaBuffer, len);
+                _dmaRunning = true;
+                _state = State::STATE_RECEIVE_TRANSFERRING;
+            }
+            else {
+                _rxPending = false;
+                _state = State::STATE_RUNNING;
+            }
+        }
+    }
+    else if (_state == State::STATE_RECEIVE_TRANSFERRING) {
+        if (!_dmaRunning) {
+
+            // Very important to stop the variable length read: Chip deselect 
+            _writeSelectPin(true);
+
+            // Assume the pointer has been advanced in the chip, so we also
+            // advance the shadow copy accordingly. Per the documentation, the chip will 
+            // wrap at 0xffff so the shadow does as well.
+            _Sn_RX_RD += _rxTransferSize;
+
+            // Update the read pointer and issue the RECV command
+            unsigned len = 0;
+
+            // Move read pointer forward past new data
+            // Sn_RX_RD
+            _txDmaBuffer[len++] = 0;
+            _txDmaBuffer[len++] = 0x28;
+            // Block 00001, W (1), Fixed 2 bytes (10)
+            _txDmaBuffer[len++] = 0b00001110;
+            // Big endian
+            _txDmaBuffer[len++] = (_Sn_RX_RD >> 8) & 0xff;
+            _txDmaBuffer[len++] = (_Sn_RX_RD & 0xff);
+
+            // Command RECV
+            // Sn_CR
+            _txDmaBuffer[len++] = 0;
+            _txDmaBuffer[len++] = 1;
+            // Block 00001, W (1), Fixed 1 byte (01)
+            _txDmaBuffer[len++] = 0b00001101;
+            // RECV=0x40
+            _txDmaBuffer[len++] = 0x40;
+
+            // Chip select 
+            _writeSelectPin(false);
+            _txDmaStart(_txDmaBuffer, len);
+            _dmaRunning = true;
+            _state = State::STATE_RECEIVING;
+        }
+    }
+    else if (_state == State::STATE_RECEIVING) {
+        if (!_dmaRunning) {
+
+            _writeSelectPin(true);
             _state = State::STATE_RUNNING;
+
+            // Append the newly received data to the accumulator.
+            // Keep in mind that the first three bytes in the DMA buffer are useless placeholders 
+            // that result from the way the TX/RX SPI operation works.
+            memcpy(_rxAcc + _rxAccUsed, _rxDmaBuffer + 3, _rxTransferSize);
+            _rxAccUsed += _rxTransferSize;
+
+            // In MACRAW mode each packet is prefixed with a two-byte length (in big endian format)
+            // that describes the length of the packet INCLUSIVE OF THE TWO LENGTH BYTES.
+            //
+            // It's possible that we have more than one packet in the buffer so this sets up a loop
+            // that will keep going until we don't have enough to work with.  Do we have enough in the 
+            // DMA buffer to at least check the length?
+            while (_rxAccUsed > 2) {
+
+                // Look at the first two bytes of the accumulator to see how long the current packet is.
+                const uint16_t packetLen = unpack_uint16_be(_rxAcc);
+
+                // Do we have at least a full packet?
+                if (_rxAccUsed >= packetLen) {
+
+                    // Fire the receive callback. We wait until all of the bookkeeping 
+                    // in the W5500 has been completed in case this callback generates an
+                    // immediate send. The callback doesn't receive the length bytes.
+                    _rxEvent(_rxAcc + 2, packetLen - 2);
+
+                    // Show the destination 
+                    //_log.info("Dest: %02X:%02X:%02X:%02X:%02X:%02X", 
+                    //    packet[0], packet[1], packet[2],
+                    //    packet[3], packet[4], packet[5]);
+
+                    // Shift left to eliminate the consumed data (overlapping move)
+                    if (_rxAccUsed > packetLen) 
+                        memmove(_rxAcc, _rxAcc + packetLen, _rxAccUsed - packetLen);
+                    _rxAccUsed -= packetLen;
+                }
+                else {
+                    break;
+                }
+            }
+        }
+    }
+    else if (_state == State::STATE_RUNNING) {
+
+        // If we've been told about a pending receive then start to pull the packet
+        // out of the chip. There is also a timeout here to make sure that 
+        // we check once in awhile regardless of the interrupt status so 
+        // that nothing is accidentally stranded in the receive buffer.
+
+        if (_rxPending || _clock.isPastWindow(_lastRxCheckMs, RX_CHECK_INTERVAL_MS)) {
+
+            if (_rxPending)
+                _log.info("Receive pending reported");
+            else 
+                _log.info("Receive check proactively");
+
+            _lastRxCheckMs = _clock.timeMs();
+
+            // Ask for size of the latest packet received.
+            // Sn_RX_RSR
+            _txDmaBuffer[0] = 0;
+            _txDmaBuffer[1] = 0x26;
+            // Block 00001, R (0), Fixed 2 bytes (10)
+            _txDmaBuffer[2] = 0b00001010;
+            // Dummy
+            _txDmaBuffer[3] = 0;
+            _txDmaBuffer[4] = 0;
+
+            _writeSelectPin(false);
+            _txRxDmaStart(_txDmaBuffer, _rxDmaBuffer, 5);
+            _dmaRunning = true;
+            _state = State::STATE_RECEIVE_CHECK;
         }
     }
 }
 
 void W5500Driver::txDmaComplete() {    
-    if (_dmaState == DmaState::DMASTATE_TX_RUNNING) 
-        _dmaState = DmaState::DMASTATE_TX_COMPLETE; 
+    _dmaRunning = false;
 }
 
 void W5500Driver::txRxDmaComplete() {   
-    if (_dmaState == DmaState::DMASTATE_TXRX_RUNNING) 
-        _dmaState = DmaState::DMASTATE_TXRX_COMPLETE; 
+    _dmaRunning = false;
 }
 
-void W5500Driver::sendPacket(const uint8_t* packet, unsigned packetLen) {
+void W5500Driver::rxEvent() {
+    _rxPending = true;
+}
 
-    if (_state != State::STATE_RUNNING)
-        return;
+bool W5500Driver::sendPacketIfPossible(const uint8_t* packet, unsigned packetLen) {
+
+    if (_state != State::STATE_RUNNING || _dmaRunning)
+        return false;
 
     // 1. Write data to the last Sn_TX_WR location.
     // 2. Move the Sn_TX_WR forward past the new data.
     // 3. Request a SEND command
 
     unsigned len = 0;
-
-    /*
-    // Sn_TX_WR
-    _txDmaBuffer[len++] = 0;
-    _txDmaBuffer[len++] = 0x24;
-    // Block 00001, W (1), Fixed 2 bytes (10)
-    _txDmaBuffer[len++] = 0b00001110;
-    // Big endian
-    _txDmaBuffer[len++] = (_Sn_TX_WR >> 8) & 0xff;
-    _txDmaBuffer[len++] = (_Sn_TX_WR & 0xff);
-    */
 
     // Data write into TX buffer
     _txDmaBuffer[len++] = (_Sn_TX_WR >> 8) & 0xff;
@@ -263,11 +415,14 @@ void W5500Driver::sendPacket(const uint8_t* packet, unsigned packetLen) {
     // Chip select 
     _writeSelectPin(false);
     _txDmaStart(_txDmaBuffer, len);
+    _dmaRunning = true;
 
-    // #### TODO: DEAL WITH WRAP
+    // IMPORTANT: Per the W5500 datasheet, the real Sn_TX_WR will wrap at 0xffff so we 
+    // do the same with the shadow pointer.
     _Sn_TX_WR += packetLen;
     _state = State::STATE_SEND_TRANSFERING;
-    _dmaState = DmaState::DMASTATE_TX_RUNNING;
+
+    return true;
 }
 
 }

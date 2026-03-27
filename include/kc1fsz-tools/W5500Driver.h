@@ -13,21 +13,30 @@
 namespace kc1fsz {
 
 class Log;
+class Clock;
 
 class W5500Driver : public Runnable {
 public:
 
     using writePinCb = std::function<void(bool state)>;
     // EX: HAL_SPI_TransmitReceive_DMA and HAL_SPI_TxRxCpltCallback. 
-    using txRxDmaStartCb = std::function<void(uint8_t* txPtr, uint8_t* rxPtr, unsigned len)>;
+    using txRxDmaStartCb = std::function<void(const uint8_t* txPtr, uint8_t* rxPtr, unsigned len)>;
     // EX: HAL_SPI_Transmit_DMA and HAL_SPI_TxCpltCallback. 
-    using txDmaStartCb = std::function<void(uint8_t* txPtr, unsigned len)>;
+    using packetCb = std::function<void(const uint8_t* txPtr, unsigned len)>;
 
+    /**
+     * @param mac A 6-byte hardware address (binary form)
+     * @param rxPacket A callback fired when a valid packet is received. This will only
+     * be triggered during a call to ::run(), so it will not happen inside of an ISR/
+     */
     W5500Driver(Log& log, 
+        Clock& clock,
         const uint8_t* mac,
-        writePinCb writeResetPin, writePinCb writeSelectPin,
+        writePinCb writeResetPin, 
+        writePinCb writeSelectPin,
         txRxDmaStartCb txRxDmaStart,
-        txDmaStartCb txDmaStart,
+        packetCb txDmaStart,
+        packetCb rxEvent,
         uint8_t* rxDmaBuffer, unsigned rxDmaBufferSize,
         uint8_t* txDmaBuffer, unsigned txDmaBufferSize);
 
@@ -35,16 +44,24 @@ public:
     
     void txDmaComplete();
     void txRxDmaComplete();
+    void rxEvent();
 
     bool isFaulted() const { return _state == State::STATE_FAULT; }
 
     bool isUp() const { return _state == State::STATE_RUNNING || _state == State::STATE_SEND_TRANSFERING || 
-        _state == State::STATE_SENDING; }
+        _state == State::STATE_SENDING || _state == State::STATE_RECEIVE_CHECK || 
+        _state == State::STATE_RECEIVE_TRANSFERRING || _state == State::STATE_RECEIVING; }
 
-    bool isDmaRunning() const { return _dmaState == DmaState::DMASTATE_TXRX_RUNNING || 
-        _dmaState == DmaState::DMASTATE_TX_RUNNING; }
+    bool isDmaRunning() const { return _dmaRunning; }
 
-    void sendPacket(const uint8_t* packet, unsigned packetLen);
+    /**
+     * Sends a packet to the W5500 chip if possible. There is no internal buffering at this
+     * layer so it's possible that sends will fail due to other activity going on. The caller
+     * should be prepared to try again shortly.
+
+     * @returns True if packet was accepted, false is not due being busy, in the wrong state, etc.
+     */
+    bool sendPacketIfPossible(const uint8_t* packet, unsigned packetLen);
 
     /** 
      * Can be installed as a callback.
@@ -59,6 +76,10 @@ public:
 
     // ----- From Runnable ---------------------------------------------------
 
+    /**
+     * Performs any background activity. Importantly, will fire the receive callback 
+     * if a packet is received.
+     */
     void run();
 
 private:
@@ -71,32 +92,40 @@ private:
         STATE_OPENING,
         STATE_STATUS_CHECK,
         STATE_SEND_TRANSFERING,
-        STATE_SENDING
-    };
-
-    enum DmaState {
-        DMASTATE_IDLE,
-        DMASTATE_TX_RUNNING,
-        DMASTATE_TX_COMPLETE,
-        DMASTATE_TXRX_RUNNING,
-        DMASTATE_TXRX_COMPLETE
+        STATE_SENDING,
+        STATE_RECEIVE_CHECK,
+        STATE_RECEIVE_TRANSFERRING,
+        STATE_RECEIVING
     };
 
     State _state = State::STATE_IDLE;
-    DmaState _dmaState = DmaState::DMASTATE_IDLE;
+    bool _dmaRunning = false;
+    bool _rxPending = false;
+    uint16_t _rxTransferSize = 0;
+    uint64_t _lastRxCheckMs = 0;
 
     Log& _log;
+    Clock& _clock;
     const uint8_t* _mac;
     writePinCb _writeResetPin;
     writePinCb _writeSelectPin;
     txRxDmaStartCb _txRxDmaStart;
-    txDmaStartCb _txDmaStart;
-    uint8_t* _rxDmaBuffer;
-    unsigned _rxDmaBufferSize;
-    uint8_t* _txDmaBuffer;
-    unsigned _txDmaBufferSize;
+    packetCb _txDmaStart;
+    packetCb _rxEvent;
 
+    uint8_t* _rxDmaBuffer;
+    const unsigned _rxDmaBufferSize;
+    uint8_t* _txDmaBuffer;
+    const unsigned _txDmaBufferSize;
+
+    // This accumulator is used to assemble full Ethernet frames 
+    static const unsigned _rxAccSize = 2048;
+    uint8_t _rxAcc[_rxAccSize];
+    unsigned _rxAccUsed = 0;
+
+    // IMPORTANT: Shadow is same width as real pointer in the chip
     uint16_t _Sn_TX_WR;
+    uint16_t _Sn_RX_RD;
 };
 
 }
