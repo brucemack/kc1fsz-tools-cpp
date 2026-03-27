@@ -214,8 +214,6 @@ void W5500Driver::run() {
 
             _log.info("Sent");
 
-            // Data pointer back to beginning
-            _Sn_TX_WR = 0;
             _state = State::STATE_RUNNING;
         }
     }
@@ -242,6 +240,7 @@ void W5500Driver::sendPacket(const uint8_t* packet, unsigned packetLen) {
 
     unsigned len = 0;
 
+    /*
     // Sn_TX_WR
     _txDmaBuffer[len++] = 0;
     _txDmaBuffer[len++] = 0x24;
@@ -250,6 +249,7 @@ void W5500Driver::sendPacket(const uint8_t* packet, unsigned packetLen) {
     // Big endian
     _txDmaBuffer[len++] = (_Sn_TX_WR >> 8) & 0xff;
     _txDmaBuffer[len++] = (_Sn_TX_WR & 0xff);
+    */
 
     // Data write into TX buffer
     _txDmaBuffer[len++] = (_Sn_TX_WR >> 8) & 0xff;
@@ -264,6 +264,7 @@ void W5500Driver::sendPacket(const uint8_t* packet, unsigned packetLen) {
     _writeSelectPin(false);
     _txDmaStart(_txDmaBuffer, len);
 
+    // #### TODO: DEAL WITH WRAP
     _Sn_TX_WR += packetLen;
     _state = State::STATE_SEND_TRANSFERING;
     _dmaState = DmaState::DMASTATE_TX_RUNNING;

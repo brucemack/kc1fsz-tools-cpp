@@ -107,4 +107,14 @@ int getIPPort(const sockaddr& addr);
  */
 int makeNonBlocking(int sockFd);
 
+/**
+ * Writes an information element (sometimes called option) to the designated buffer.
+ * @returns -1 If space is insufficient, else returns the number of bytes used.
+ */
+int addIE_uint32(uint8_t id, uint32_t value, uint8_t* buf, unsigned bufCapacity);
+int addIE_uint16(uint8_t id, uint16_t value, uint8_t* buf, unsigned bufCapacity);
+int addIE_uint8(uint8_t id, uint8_t value, uint8_t* buf, unsigned bufCapacity);
+int addIE_str(uint8_t id, const char* value, unsigned valueLen, uint8_t* buf, unsigned bufCapacity);
+int addIE_str(uint8_t id, const char* value, uint8_t* buf, unsigned bufCapacity);
+    
 }

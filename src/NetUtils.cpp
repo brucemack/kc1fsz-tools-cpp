@@ -29,6 +29,7 @@
 #include <cstdio>
 #include <iostream>
 
+#include "kc1fsz-tools/Common.h"
 #include "kc1fsz-tools/NetUtils.h"
 
 using namespace std;
@@ -306,5 +307,45 @@ int makeNonBlocking(int sockFd) {
     return 0;
 }
 
+int addIE_uint32(uint8_t id, uint32_t value, uint8_t* buf, unsigned bufCapacity) {
+    if (bufCapacity < 6)
+        return -1;
+    buf[0] = id;
+    buf[1] = 4;
+    pack_uint32_be(value, buf + 2);
+    return 6;
+}
+
+int addIE_uint16(uint8_t id, uint16_t value, uint8_t* buf, unsigned bufCapacity) {
+    if (bufCapacity < 4)
+        return -1;
+    buf[0] = id;
+    buf[1] = 2;
+    pack_uint16_be(value, buf + 2);
+    return 4;
+}
+
+int addIE_uint8(uint8_t id, uint8_t value, uint8_t* buf, unsigned bufCapacity) {
+    if (bufCapacity < 3)
+        return -1;
+    buf[0] = id;
+    buf[1] = 1;
+    buf[2] = value;
+    return 3;
+}
+
+int addIE_str(uint8_t id, const char* value, unsigned valueLen, uint8_t* buf, unsigned bufCapacity) {
+    if (bufCapacity < 2 + valueLen || valueLen >= 255)
+        return -1;
+    buf[0] = id;
+    buf[1] = valueLen;
+    for (unsigned i = 0; i < valueLen; i++)
+        buf[2 + i] = value[i];
+    return 2 + valueLen;
+}
+
+int addIE_str(uint8_t id, const char* value, uint8_t* buf, unsigned bufCapacity) {
+    return addIE_str(id, value, strlen(value), buf, bufCapacity);
+}
 
 }
