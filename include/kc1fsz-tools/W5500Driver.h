@@ -18,6 +18,7 @@ class Clock;
 class W5500Driver : public Runnable {
 public:
 
+    using eventCb = std::function<void()>;
     using writePinCb = std::function<void(bool state)>;
     // EX: HAL_SPI_TransmitReceive_DMA and HAL_SPI_TxRxCpltCallback. 
     using txRxDmaStartCb = std::function<void(const uint8_t* txPtr, uint8_t* rxPtr, unsigned len)>;
@@ -27,16 +28,21 @@ public:
     /**
      * @param mac A 6-byte hardware address (binary form)
      * @param rxPacket A callback fired when a valid packet is received. This will only
-     * be triggered during a call to ::run(), so it will not happen inside of an ISR/
+     * be triggered during a call to ::run(), so it will not happen inside of an ISR.
+     * @param flushDCache A callback that can be used to flush data from the data-cache. This
+     * is importnat when 
      */
     W5500Driver(Log& log, 
         Clock& clock,
         const uint8_t* mac,
+        eventCb enableIrq,
+        eventCb disableIrq,
         writePinCb writeResetPin, 
         writePinCb writeSelectPin,
         txRxDmaStartCb txRxDmaStart,
         packetCb txDmaStart,
         packetCb rxEvent,
+        packetCb flushDCache,
         uint8_t* rxDmaBuffer, unsigned rxDmaBufferSize,
         uint8_t* txDmaBuffer, unsigned txDmaBufferSize);
 
@@ -44,7 +50,7 @@ public:
     
     void txDmaComplete();
     void txRxDmaComplete();
-    void rxEvent();
+    void rxInt();
 
     bool isFaulted() const { return _state == State::STATE_FAULT; }
 
@@ -74,6 +80,10 @@ public:
         reinterpret_cast<W5500Driver*>(data)->txDmaComplete();
     }
 
+    static void rxInt(void* data) {
+        reinterpret_cast<W5500Driver*>(data)->rxInt();
+    }
+
     // ----- From Runnable ---------------------------------------------------
 
     /**
@@ -87,31 +97,38 @@ private:
     enum State {
         STATE_IDLE,
         STATE_FAULT,
+        // 2
         STATE_RUNNING,
         STATE_VERSION_CHECK,
         STATE_OPENING,
         STATE_STATUS_CHECK,
         STATE_SEND_TRANSFERING,
         STATE_SENDING,
+        // 8
         STATE_RECEIVE_CHECK,
         STATE_RECEIVE_TRANSFERRING,
+        // 10
         STATE_RECEIVING
     };
 
     State _state = State::STATE_IDLE;
-    bool _dmaRunning = false;
-    bool _rxPending = false;
+    volatile bool _dmaRunning = false;
+    volatile bool _rxPending = false;
     uint16_t _rxTransferSize = 0;
     uint64_t _lastRxCheckMs = 0;
+    uint64_t _lastPollMs = 0;
 
     Log& _log;
     Clock& _clock;
     const uint8_t* _mac;
+    eventCb _enableIrq;
+    eventCb _disableIrq;
     writePinCb _writeResetPin;
     writePinCb _writeSelectPin;
     txRxDmaStartCb _txRxDmaStart;
     packetCb _txDmaStart;
     packetCb _rxEvent;
+    packetCb _flushDCache;
 
     uint8_t* _rxDmaBuffer;
     const unsigned _rxDmaBufferSize;
