@@ -135,9 +135,9 @@ private:
     uint8_t* _txDmaBuffer;
     const unsigned _txDmaBufferSize;
 
-    // This accumulator is used to assemble full Ethernet frames 
-    static const unsigned _rxAccSize = 2048;
-    uint8_t _rxAcc[_rxAccSize];
+    // This accumulator is used to assemble two full Ethernet frames 
+    static const unsigned _rxAccCapacity = 1600 * 2;
+    uint8_t _rxAcc[_rxAccCapacity];
     unsigned _rxAccUsed = 0;
 
     // IMPORTANT: Shadow is same width as real pointer in the chip

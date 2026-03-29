@@ -80,19 +80,22 @@ void W5500Driver::reset() {
 
 void W5500Driver::run() {
 
+    /*
     // Diagnostic stuff
     if (_clock.isPastWindow(_lastPollMs, 5000)) {
         _lastPollMs = _clock.timeMs();
         _log.info("State %d dmaRunning %d Sn_TX_WR %04X Sn_RX_RD %04X", 
             _state, _dmaRunning, _Sn_TX_WR, _Sn_RX_RD);
     }
+    */
 
     if (_state == State::STATE_VERSION_CHECK) {
         if (!_dmaRunning) {
 
             _writeSelectPin(true);
+            _flushDCache(_rxDmaBuffer, 4);
 
-            if (_rxDmaBuffer[3] == 0x04) {
+            if (_rxDmaBuffer[3] >= 0x04) {
 
                 unsigned len = 0;
 
@@ -181,7 +184,6 @@ void W5500Driver::run() {
                 _txDmaStart(_txDmaBuffer, len);
                 _dmaRunning = true;
                 _enableIrq();
-
                 _state = State::STATE_OPENING;
             } 
             else {
@@ -194,22 +196,23 @@ void W5500Driver::run() {
 
             _writeSelectPin(true);
 
+            unsigned len = 0;
+
             // Ask for status
             // Sn_SR
-            _txDmaBuffer[0] = 0;
-            _txDmaBuffer[1] = 0x03;
+            _txDmaBuffer[len++] = 0;
+            _txDmaBuffer[len++] = 0x03;
             // Block 00001, R (0), Fixed 1 byte (01)
-            _txDmaBuffer[2] = 0b00001001;
+            _txDmaBuffer[len++] = 0b00001001;
             // DUMMY
-            _txDmaBuffer[3] = 0;
+            _txDmaBuffer[len++] = 0;
 
-            _flushDCache(_txDmaBuffer, 4);
+            _flushDCache(_txDmaBuffer, len);
             _writeSelectPin(false);
             _disableIrq();
-            _txRxDmaStart(_txDmaBuffer, _rxDmaBuffer, 4);
+            _txRxDmaStart(_txDmaBuffer, _rxDmaBuffer, len);
             _dmaRunning = true;
             _enableIrq();
-
             _state = State::STATE_STATUS_CHECK;
         }
     }
@@ -217,6 +220,7 @@ void W5500Driver::run() {
         if (!_dmaRunning) {
             
             _writeSelectPin(true);
+
             _flushDCache(_rxDmaBuffer, 4);
 
             if (_rxDmaBuffer[3] == 0x42) {
@@ -232,33 +236,34 @@ void W5500Driver::run() {
 
             // Very important! This terminates the variable length transfer
             _writeSelectPin(true);
-            
+
+            unsigned len = 0;
+
             // Move write pointer forward past new data
             // Sn_TX_WR
-            _txDmaBuffer[0] = 0;
-            _txDmaBuffer[1] = 0x24;
+            _txDmaBuffer[len++] = 0;
+            _txDmaBuffer[len++] = 0x24;
             // Block 00001, W (1), Fixed 2 bytes (10)
-            _txDmaBuffer[2] = 0b00001110;
+            _txDmaBuffer[len++] = 0b00001110;
             // Big endian
-            _txDmaBuffer[3] = (_Sn_TX_WR >> 8) & 0xff;
-            _txDmaBuffer[4] = (_Sn_TX_WR & 0xff);
+            _txDmaBuffer[len++] = (_Sn_TX_WR >> 8) & 0xff;
+            _txDmaBuffer[len++] = (_Sn_TX_WR & 0xff);
 
             // Command send
             // Sn_CR
-            _txDmaBuffer[5 + 0] = 0;
-            _txDmaBuffer[5 + 1] = 1;
+            _txDmaBuffer[len++] = 0;
+            _txDmaBuffer[len++] = 1;
             // Block 00001, W (1), Fixed 1 byte (01)
-            _txDmaBuffer[5 + 2] = 0b00001101;
+            _txDmaBuffer[len++] = 0b00001101;
             // SEND=0x20
-            _txDmaBuffer[5 + 3] = 0x20;
+            _txDmaBuffer[len++] = 0x20;
 
-            _flushDCache(_rxDmaBuffer, 9);
+            _flushDCache(_txDmaBuffer, len);
             _writeSelectPin(false);
             _disableIrq();
-            _txDmaStart(_txDmaBuffer, 9);
+            _txDmaStart(_txDmaBuffer, len);
             _dmaRunning = true;
             _enableIrq();
-
             _state = State::STATE_SENDING;
         }
     }
@@ -294,13 +299,18 @@ void W5500Driver::run() {
                 // Assume space for the data itself
                 len += rxRsr;
 
-                _flushDCache(_rxDmaBuffer, len);
-                _writeSelectPin(false);
-                _disableIrq();
-                _txRxDmaStart(_txDmaBuffer, _rxDmaBuffer, len);
-                _dmaRunning = true;
-                _enableIrq();
-                _state = State::STATE_RECEIVE_TRANSFERRING;
+                if (len > _txDmaBufferSize || len > _rxDmaBufferSize) {
+                    _state = State::STATE_FAULT;
+                }
+                else {
+                    _flushDCache(_txDmaBuffer, len);
+                    _writeSelectPin(false);
+                    _disableIrq();
+                    _txRxDmaStart(_txDmaBuffer, _rxDmaBuffer, len);
+                    _dmaRunning = true;
+                    _enableIrq();
+                    _state = State::STATE_RECEIVE_TRANSFERRING;
+                }
             }
             else {
                 _rxPending = false;
@@ -356,47 +366,49 @@ void W5500Driver::run() {
             _writeSelectPin(true);
             _flushDCache(_rxDmaBuffer, _rxTransferSize + 8);
 
-            // Append the newly received data to the accumulator.
-            // Keep in mind that the first three bytes in the DMA buffer are useless placeholders 
-            // that result from the way the TX/RX SPI operation works.
-            memcpy(_rxAcc + _rxAccUsed, _rxDmaBuffer + 3, _rxTransferSize);
-            _rxAccUsed += _rxTransferSize;
-
-            // In MACRAW mode each packet is prefixed with a two-byte length (in big endian format)
-            // that describes the length of the packet INCLUSIVE OF THE TWO LENGTH BYTES.
-            //
-            // It's possible that we have more than one packet in the buffer so this sets up a loop
-            // that will keep going until we don't have enough to work with.  Do we have enough in the 
-            // DMA buffer to at least check the length?
-            while (_rxAccUsed > 2) {
-
-                // Look at the first two bytes of the accumulator to see how long the current packet is.
-                const uint16_t packetLen = unpack_uint16_be(_rxAcc);
-
-                // Do we have at least a full packet?
-                if (_rxAccUsed >= packetLen) {
-
-                    // Fire the receive callback. We wait until all of the bookkeeping 
-                    // in the W5500 has been completed in case this callback generates an
-                    // immediate send. The callback doesn't receive the length bytes.
-                    _rxEvent(_rxAcc + 2, packetLen - 2);
-
-                    // Show the destination 
-                    //_log.info("Dest: %02X:%02X:%02X:%02X:%02X:%02X", 
-                    //    packet[0], packet[1], packet[2],
-                    //    packet[3], packet[4], packet[5]);
-
-                    // Shift left to eliminate the consumed data (overlapping move)
-                    if (_rxAccUsed > packetLen) 
-                        memmove(_rxAcc, _rxAcc + packetLen, _rxAccUsed - packetLen);
-                    _rxAccUsed -= packetLen;
-                }
-                else {
-                    break;
-                }
+            // Is there enough space in the accumulator
+            if (_rxAccUsed + _rxTransferSize > _rxAccCapacity) {
+                _state = State::STATE_FAULT;
             }
+            else {
+                // Append the newly received data to the accumulator.
+                // Keep in mind that the first three bytes in the DMA buffer are useless placeholders 
+                // that result from the way the TX/RX SPI operation works.
+                memcpy(_rxAcc + _rxAccUsed, _rxDmaBuffer + 3, _rxTransferSize);
+                _rxAccUsed += _rxTransferSize;
 
-            _state = State::STATE_RUNNING;
+                // In MACRAW mode each packet is prefixed with a two-byte length (in big endian format)
+                // that describes the length of the packet INCLUSIVE OF THE TWO LENGTH BYTES.
+                //
+                // It's possible that we have more than one packet in the buffer so this sets up a loop
+                // that will keep going until we don't have enough to work with.  Do we have enough in the 
+                // DMA buffer to at least check the length?
+                while (_rxAccUsed > 2) {
+
+                    // Look at the first two bytes of the accumulator to see how long the current packet is.
+                    const uint16_t packetLen = unpack_uint16_be(_rxAcc);
+
+                    // Do we have at least a full packet?
+                    if (_rxAccUsed >= packetLen) {
+
+                        // Fire the receive callback. We wait until all of the bookkeeping 
+                        // in the W5500 has been completed in case this callback generates an
+                        // immediate send. The callback doesn't receive the length bytes.
+                        _rxEvent(_rxAcc + 2, packetLen - 2);
+
+                        // Shift left to eliminate the consumed data (overlapping move)
+                        if (_rxAccUsed > packetLen) 
+                            memmove(_rxAcc, _rxAcc + packetLen, _rxAccUsed - packetLen);
+                        _rxAccUsed -= packetLen;
+                    }
+                    else {
+                        break;
+                    }
+                }
+
+                // At this point we need more data to produce any more full packets
+                _state = State::STATE_RUNNING;
+            }
         }
     }
     else if (_state == State::STATE_RUNNING) {
@@ -406,7 +418,8 @@ void W5500Driver::run() {
         // we check once in awhile regardless of the interrupt status so 
         // that nothing is accidentally stranded in the receive buffer.
 
-        if (_rxPending || _clock.isPastWindow(_lastRxCheckMs, RX_CHECK_INTERVAL_MS)) {
+        if (_rxPending || 
+            _clock.isPastWindow(_lastRxCheckMs, RX_CHECK_INTERVAL_MS)) {
 
             _lastRxCheckMs = _clock.timeMs();
 
@@ -440,7 +453,7 @@ void W5500Driver::run() {
             _txDmaBuffer[len++] = 0;
             _txDmaBuffer[len++] = 0;
 
-            _flushDCache(_rxDmaBuffer, len);
+            _flushDCache(_txDmaBuffer, len);
             _writeSelectPin(false);
             _disableIrq();
             _txRxDmaStart(_txDmaBuffer, _rxDmaBuffer, len);
@@ -465,7 +478,15 @@ void W5500Driver::rxInt() {
 
 bool W5500Driver::sendPacketIfPossible(const uint8_t* packet, unsigned packetLen) {
 
-    if (_state != State::STATE_RUNNING || _dmaRunning)
+    if (_state != State::STATE_RUNNING) {
+        return false;
+    }
+    if (_dmaRunning) {
+        return false;
+    }
+
+    // Make sure we have enough space for the DMA request
+    if (packetLen + 3 > _txDmaBufferSize) 
         return false;
 
     // 1. Write data to the last Sn_TX_WR location.
@@ -488,11 +509,10 @@ bool W5500Driver::sendPacketIfPossible(const uint8_t* packet, unsigned packetLen
     _writeSelectPin(false);
     _txDmaStart(_txDmaBuffer, len);
     _dmaRunning = true;
-    _enableIrq();
-
     // IMPORTANT: Per the W5500 datasheet, the real Sn_TX_WR will wrap at 0xffff so we 
     // do the same with the shadow pointer.
     _Sn_TX_WR += packetLen;
+    _enableIrq();
     _state = State::STATE_SEND_TRANSFERING;
 
     return true;
