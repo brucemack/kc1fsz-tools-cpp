@@ -61,13 +61,15 @@ public:
     bool isDmaRunning() const { return _dmaRunning; }
 
     /**
-     * Sends a packet to the W5500 chip if possible. There is no internal buffering at this
+     * Sends a packet to the W5500 chip if possible. There is limited internal buffering at this
      * layer so it's possible that sends will fail due to other activity going on. The caller
      * should be prepared to try again shortly.
-
-     * @returns True if packet was accepted, false is not due being busy, in the wrong state, etc.
+     *
+     * NOTE: There is no such think as a partial packet!
+     *
+     * @returns 0 if packet was accepted, -1 if not due being busy, -2 for an invalid packet.
      */
-    bool sendPacketIfPossible(const uint8_t* packet, unsigned packetLen);
+    int sendPacketIfPossible(const uint8_t* packet, unsigned packetLen);
 
     /** 
      * Can be installed as a callback.
@@ -108,7 +110,8 @@ private:
         STATE_RECEIVE_CHECK,
         STATE_RECEIVE_TRANSFERRING,
         // 10
-        STATE_RECEIVING
+        STATE_RECEIVING,
+        STATE_RESET
     };
 
     State _state = State::STATE_IDLE;
@@ -135,14 +138,25 @@ private:
     uint8_t* _txDmaBuffer;
     const unsigned _txDmaBufferSize;
 
-    // This accumulator is used to assemble two full Ethernet frames 
+    // This accumulator is used to assemble two full Ethernet frames. This is 
+    // needed in case (a) the last read got 99% of a frame (b) the current read
+    // got the final 1% of the previous frame plus an entire new one.
     static const unsigned _rxAccCapacity = 1600 * 2;
     uint8_t _rxAcc[_rxAccCapacity];
     unsigned _rxAccUsed = 0;
 
+    // This buffer is used to stage the next outbound packet. IT can fit one 
+    // full Ethernet frames.
+    static const unsigned _txBufCapacity = 1600;
+    uint8_t _txBuf[_txBufCapacity];
+    unsigned _txBufUsed = 0;
+
     // IMPORTANT: Shadow is same width as real pointer in the chip
     uint16_t _Sn_TX_WR;
     uint16_t _Sn_RX_RD;
+
+    void _startTx(unsigned len);
+    void _startTxRx(unsigned len);
 };
 
 }
