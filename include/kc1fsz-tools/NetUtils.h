@@ -109,6 +109,7 @@ int makeNonBlocking(int sockFd);
 
 /**
  * Writes an information element (sometimes called option) to the designated buffer.
+ * Values are encoded in network (big endian) format in all cases.
  * @returns -1 If space is insufficient, else returns the number of bytes used.
  */
 int addIE_uint32(uint8_t id, uint32_t value, uint8_t* buf, unsigned bufCapacity);
@@ -116,5 +117,25 @@ int addIE_uint16(uint8_t id, uint16_t value, uint8_t* buf, unsigned bufCapacity)
 int addIE_uint8(uint8_t id, uint8_t value, uint8_t* buf, unsigned bufCapacity);
 int addIE_str(uint8_t id, const char* value, unsigned valueLen, uint8_t* buf, unsigned bufCapacity);
 int addIE_str(uint8_t id, const char* value, uint8_t* buf, unsigned bufCapacity);
-    
+
+/**
+ * Parses and information element (sometimes called an option) from the packet
+ * into the designated buffer.
+ * 
+ * @returns -1 if ran out of space, -2 if target ID is not found, otherwise returns the length of the 
+ * element that was extracted into buf.
+ */
+int extractIE_raw(const uint8_t* packet, unsigned packetLen, 
+    uint8_t id, uint8_t* buf, unsigned bufMaxLen);
+
+/**
+ * Extracts a number encoded in big-endian format.
+ * @returns -2 if not found, otherwise 0
+ */
+int extractIE_uint32(const uint8_t* packet, unsigned packetLen, 
+    uint8_t id, uint32_t* result);
+
+int extractIE_uint8(const uint8_t* packet, unsigned packetLen, 
+    uint8_t id, uint8_t* result);
+
 }
