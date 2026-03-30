@@ -149,8 +149,8 @@ static int makeReq(const uint8_t* mac, uint16_t reqId, uint8_t reqType,
     packetCapacity -= rc;
 
     // Client identifier (Ethernet + MAC)
-    const char clientId[] = { 0x01, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] };
-    rc = addIE_str(0x3d, clientId, sizeof(clientId), packet + used, packetCapacity);
+    const uint8_t clientId[] = { 0x01, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] };
+    rc = addIE_str(0x3d, (const char*)clientId, sizeof(clientId), packet + used, packetCapacity);
     if (rc < 0)
         return -2;
     used += rc;
@@ -371,8 +371,10 @@ int makeREQUEST(const uint8_t* mac, uint16_t reqId, uint32_t addr4, uint8_t* pac
     return makeReq(mac, reqId, 0x03, addr4, packet, packetCapacity);
 }
 
-static bool _isValidDHCPResponse(const uint8_t* packet, unsigned len, uint32_t transId) {
-    // Is this a DHCP response?
+/**
+ * Checks an Ethernet packet to see if it is a valid DHCP response.
+ */
+bool isResponse(const uint8_t* packet, unsigned len) {
     if (len < 282 ||
         // Ethernet, IPv4
         packet[12] != 0x08 ||
@@ -381,7 +383,6 @@ static bool _isValidDHCPResponse(const uint8_t* packet, unsigned len, uint32_t t
         packet[14 + 9] != 0x11 ||
         // BOOTP, message type = REPLY
         packet[14 + 20 + 8] != 0x02 ||
-        unpack_uint32_be(packet + 14 + 20 + 8 + 4) != transId ||
         // Magic number 
         packet[14 + 20 + 8 + 236] != 0x63 ||
         packet[14 + 20 + 8 + 237] != 0x82 ||
@@ -390,6 +391,14 @@ static bool _isValidDHCPResponse(const uint8_t* packet, unsigned len, uint32_t t
         return false;
     else 
         return true;
+}
+
+static bool _isValidDHCPResponse(const uint8_t* packet, unsigned len, uint32_t transId) {
+    if (!isResponse(packet, len))
+        return false;
+    if (unpack_uint32_be(packet + 14 + 20 + 8 + 4) != transId)
+        return false;
+    return true;
 }
 
 int parseOFFER(const uint8_t* packet, unsigned len, uint32_t transId, uint32_t* leasedAddr4) {
