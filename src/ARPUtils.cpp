@@ -58,6 +58,21 @@ int makeQuery(const uint8_t* sourceMac, uint32_t sourceIp, uint32_t targetIp,
     // The rest is padding
     return 60;
 }
+
+bool isValid(const uint8_t* packet, unsigned packetLen) {
+    return packetLen >= 42 &&
+        // Ethernet Type=ARP 
+        packet[12] == 0x08 &&
+        packet[13] == 0x06 &&
+        // ARP
+        // Ethernet
+        packet[14] == 0x00 &&
+        packet[15] == 0x01 &&
+        // IPv4
+        packet[16] == 0x08 &&
+        packet[17] == 0x00;
+}
+
     }
 }
 

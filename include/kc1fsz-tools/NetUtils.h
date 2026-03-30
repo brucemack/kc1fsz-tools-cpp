@@ -16,7 +16,9 @@
  */
 #pragma once
 
-#ifdef _WIN32
+#ifdef __MINGW32__
+#include <sys/socket.h>
+#elifdef _WIN32
 #include <winsock2.h>
 #else
 #include <sys/socket.h>
