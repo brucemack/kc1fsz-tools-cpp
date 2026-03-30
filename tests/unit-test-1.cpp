@@ -6,7 +6,6 @@
 #include "kc1fsz-tools/CircularQueuePointers.h"
 #include "kc1fsz-tools/CircularQueueWithTrigger.h"
 #include "kc1fsz-tools/GPSUtils.h"
-#include "kc1fsz-tools/W5500Driver.h"
 
 using namespace std;
 using namespace kc1fsz;
