@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2024, Bruce MacKinnon KC1FSZ
+ * Copyright (C) 2026, Bruce MacKinnon KC1FSZ
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,17 +19,30 @@
 #include <cstdint>
 
 namespace kc1fsz {
-    namespace arputils {
 
-bool isValid(const uint8_t* packet, unsigned packetLen);
+class Log;
+class Clock;
 
-/**
- * @param sourceIp in network order
- * @param targetIp in network order
- */
-int makeQuery(const uint8_t* sourceMac, uint32_t sourceIpN, uint32_t targetIpN,
-    uint8_t* packet, unsigned packetCapacity);
+class StateMachine {
+public:
 
-    }
+    StateMachine(Log& log, Clock& clock, int initialState);
+
+    void reset();
+    void inState(int state) const;
+    bool operator==(int state) const;
+    void setState(int state);
+    void setState(int state, unsigned timeoutMs, int timeoutState);
+
+private:
+
+    Log& _log;
+    Clock& _clock;
+    const int _initialState;
+    int _state;
+    int _timeoutState;
+    unsigned _timeoutMs;
+    uint64_t _stateStartMs;
+};
+
 }
-

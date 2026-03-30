@@ -37,6 +37,11 @@ int makeDISCOVER(const uint8_t* mac, uint16_t reqId, uint8_t* packet, unsigned p
 int makeREQUEST(const uint8_t* mac, uint16_t reqId, uint32_t reqAddr4, uint8_t* packet, unsigned packetCapacity);
 
 /**
+ * Checks an Ethernet packet to see if it is a valid DHCP response.
+ */
+bool isResponse(const uint8_t* ethPacket, unsigned len);
+
+/**
  * Parses a full Ethernet packet to extract DHCP information. It is assumed that this packet
  * is a DHCP OFFER message type.
  * @param leasedAddr4 The addressed assigned by the DHCP server in network order.
