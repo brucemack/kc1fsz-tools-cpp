@@ -29,12 +29,14 @@ public:
     StateMachine(Log& log, Clock& clock, int initialState);
 
     void reset();
-    void inState(int state) const;
+    bool inState(int state) const;
     bool operator==(int state) const;
     void setState(int state);
     void setState(int state, unsigned timeoutMs, int timeoutState);
 
 private:
+
+    void _checkTimeout();
 
     Log& _log;
     Clock& _clock;
