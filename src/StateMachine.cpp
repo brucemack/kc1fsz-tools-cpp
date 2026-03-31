@@ -40,13 +40,14 @@ bool StateMachine::operator==(int state) const {
 
 void StateMachine::setState(int state) {
     _state = state;
+    _stateStartMs = _clock.timeMs();
     _timeoutMs = 0;
     _timeoutState = 0;
-    _stateStartMs = _clock.timeMs();
 }
 
 void StateMachine::setState(int state, unsigned timeoutMs, int timeoutState) {
     _state = state;
+    _stateStartMs = _clock.timeMs();
     _timeoutMs = timeoutMs;
     _timeoutState = timeoutState;
 }

@@ -23,15 +23,24 @@ namespace kc1fsz {
 class Log;
 class Clock;
 
+/**
+ * A convenience class for managing the state in a state machine. Deals with 
+ * optional state time-outs automatically. 
+ */
 class StateMachine {
 public:
 
+    /**
+     * @param initialState The initial state and the state that is returned 
+     * on on any call to reset().
+     */
     StateMachine(Log& log, Clock& clock, int initialState);
 
     void reset();
     bool inState(int state) const;
     bool operator==(int state) const;
     void setState(int state);
+    StateMachine& operator=(int state) { setState(state); return *this; }
     void setState(int state, unsigned timeoutMs, int timeoutState);
     void checkTimeout();
 
