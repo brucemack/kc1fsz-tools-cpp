@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2024, Bruce MacKinnon KC1FSZ
+ * Copyright (C) 2026, Bruce MacKinnon KC1FSZ
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
