@@ -33,10 +33,9 @@ public:
     bool operator==(int state) const;
     void setState(int state);
     void setState(int state, unsigned timeoutMs, int timeoutState);
+    void checkTimeout();
 
 private:
-
-    void _checkTimeout();
 
     Log& _log;
     Clock& _clock;

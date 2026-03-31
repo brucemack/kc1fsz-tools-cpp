@@ -16,20 +16,59 @@
  */
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 
-namespace kc1fsz {
-    namespace arputils {
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-bool isValid(const uint8_t* packet, unsigned packetLen);
+int arputils_isValid4(const uint8_t* packet, unsigned packetLen);
+
+int arputils_isValidRequest4(const uint8_t* packet, unsigned packetLen);
+
+int arputils_isValidReply4(const uint8_t* packet, unsigned packetLen);
+
+/**
+ * Pulls sender MAC address out of ARP reply packet.
+ * @returns 0 on success, -1 if packet is invalid.
+ */
+int arputils_extractSenderMac4(const uint8_t* packet, unsigned packetLen, uint8_t* macAddr);
+
+/**
+ * @param addr4 pointer to result address buffer (network order)
+ * @returns 0 on success, -1 if packet is invalid.
+ */
+int arputils_extractSenderIp4(const uint8_t* packet, unsigned packetLen, uint32_t* addr4);
+
+/**
+ * Checks to see if the sender IP address of the ARP reply packet matches the one provided.
+ * @returns 1 if yes, 0 if no.
+ */
+int arputils_isSenderIp4(const uint8_t* packet, unsigned packetLen, uint32_t addr4);
+
+/**
+ * Checks to see if the target IP address of the ARP reply packet matches the one provided.
+ * @returns 1 if yes, 0 if no.
+ */
+int arputils_isTargetIp4(const uint8_t* packet, unsigned packetLen, uint32_t addr4);
 
 /**
  * @param sourceIp in network order
  * @param targetIp in network order
  */
-int makeQuery(const uint8_t* sourceMac, uint32_t sourceIpN, uint32_t targetIpN,
+int arputils_makeQuery4(const uint8_t* sourceMac, uint32_t sourceIpN, uint32_t targetIpN,
     uint8_t* packet, unsigned packetCapacity);
 
-    }
-}
+/**
+ * @param senderIpN in network order
+ * @param targetIpN in network order
+ */
+int arputils_makePacket4(const uint8_t* destMac, const uint8_t* sourceMac, 
+    uint16_t opCode,
+    const uint8_t* senderMac, uint32_t senderIpN, 
+    const uint8_t* targetMac, uint32_t targetIpN,
+    uint8_t* packet, unsigned packetCapacity);
 
+#ifdef __cplusplus
+}
+#endif

@@ -30,7 +30,7 @@ void StateMachine::reset() {
 }
 
 bool StateMachine::inState(int state) const {
-    const_cast<StateMachine*>(this)->_checkTimeout();
+    const_cast<StateMachine*>(this)->checkTimeout();
     return _state == state;
 }
 
@@ -51,7 +51,7 @@ void StateMachine::setState(int state, unsigned timeoutMs, int timeoutState) {
     _timeoutState = timeoutState;
 }
 
-void StateMachine::_checkTimeout() {
+void StateMachine::checkTimeout() {
     if (_timeoutMs != 0 && _clock.isPastWindow(_stateStartMs, _timeoutMs)) {
         setState(_timeoutState);
     }
