@@ -36,6 +36,11 @@ public:
     void clear();
 
     /**
+     * @returns Bytes actually used
+     */
+    unsigned getUsed() const { return _spaceUsed; }
+
+    /**
      * @returns true if successful, false if no (i.e. no space)
      */
     bool push(const uint8_t* packet, unsigned len);
@@ -44,7 +49,10 @@ public:
 
     void visitAll(std::function<void(const uint8_t* packet, unsigned len)> cb);
 
-    void removeIf(std::function<bool(const uint8_t* packet, unsigned len)> cb);
+    void removeFirstIf(std::function<bool(const uint8_t* packet, unsigned len)> cb);
+
+    void removeIf(std::function<bool(const uint8_t* packet, unsigned len)> cb,
+        bool firstOnly = false);
 
 private:
 

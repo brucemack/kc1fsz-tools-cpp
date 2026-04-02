@@ -65,7 +65,12 @@ void PacketBuffer::visitAll(std::function<void(const uint8_t* packet, unsigned l
     }
 }
 
-void PacketBuffer::removeIf(std::function<bool(const uint8_t* packet, unsigned len)> cb) {    
+void PacketBuffer::removeFirstIf(std::function<bool(const uint8_t* packet, unsigned len)> cb) {
+    removeIf(cb, true);
+}
+
+void PacketBuffer::removeIf(std::function<bool(const uint8_t* packet, unsigned len)> cb,
+    bool firstOnly) {    
     unsigned i = 0;
     while (i < _spaceUsed) {
         const uint16_t embeddedLen = unpack_uint16_be(_space + i + _lenOffset);
@@ -76,6 +81,8 @@ void PacketBuffer::removeIf(std::function<bool(const uint8_t* packet, unsigned l
             if (_spaceUsed > i + embeddedLen)
                 memmove(_space + i, _space + i + embeddedLen, _spaceUsed - i - embeddedLen);
             _spaceUsed -= embeddedLen;
+            if (firstOnly)
+                return;
             // Here i stays in the same place (no forward progress made)
         }
         else {
