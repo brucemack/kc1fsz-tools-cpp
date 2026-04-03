@@ -47,6 +47,14 @@ public:
 
     bool tryPop(uint8_t* packet, unsigned* len);
 
+    /**
+     * Provides a peek at the first element without removing it.
+     * @returns false if the buffer was empty
+     */
+    bool tryPeek(uint8_t* packet, unsigned* len);
+
+    void pop();
+
     void visitAll(std::function<void(const uint8_t* packet, unsigned len)> cb);
 
     void removeFirstIf(std::function<bool(const uint8_t* packet, unsigned len)> cb);

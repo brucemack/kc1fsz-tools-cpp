@@ -56,6 +56,17 @@ bool PacketBuffer::tryPop(uint8_t* packet, unsigned* packetLen) {
     return true;
 }
 
+bool PacketBuffer::tryPeek(uint8_t* packet, unsigned* len) {
+    if (_spaceUsed == 0)
+        return false;
+    // Get length of first packet
+    uint16_t len = unpack_uint16_be(_space + _lenOffset);
+    // Show the packet to the caller
+    memcpy(packet, _space, len);
+    *packetLen = len;
+    return true;
+}
+
 void PacketBuffer::visitAll(std::function<void(const uint8_t* packet, unsigned len)> cb) {
     unsigned i = 0;
     while (i < _spaceUsed) {
