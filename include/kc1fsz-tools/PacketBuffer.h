@@ -45,14 +45,28 @@ public:
      */
     bool push(const uint8_t* packet, unsigned len);
 
+    /**
+     * Packet will be truncated if it's not large enough to fit in the space
+     * provided.
+     * @param len Should start off pointing to the available space. Will be 
+     * overwritten with the size of the packet popped.
+     * @returns false if the buffer was empty.
+     */
     bool tryPop(uint8_t* packet, unsigned* len);
 
     /**
      * Provides a peek at the first element without removing it.
+     * Packet will be truncated if it's not large enough to fit in the space
+     * provided.
+     * @param len Should start off pointing to the available space. Will be 
+     * overwritten with the size of the packet peeked.
      * @returns false if the buffer was empty
      */
     bool tryPeek(uint8_t* packet, unsigned* len);
 
+    /**
+     * Takes off the first item, if any.
+     */
     void pop();
 
     void visitAll(std::function<void(const uint8_t* packet, unsigned len)> cb);

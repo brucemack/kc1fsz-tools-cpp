@@ -45,10 +45,12 @@ bool PacketBuffer::tryPop(uint8_t* packet, unsigned* packetLen) {
     if (_spaceUsed == 0)
         return false;
     // Get length of first packet
-    uint16_t len = unpack_uint16_be(_space + _lenOffset);
+    unsigned len = unpack_uint16_be(_space + _lenOffset);
+    // Buffer is truncated if it is too long to it in the space
+    unsigned copyLen = std::min(len, *packetLen);
     // Give the packet to the caller
-    memcpy(packet, _space, len);
-    *packetLen = len;
+    memcpy(packet, _space, copyLen);
+    *packetLen = copyLen;
     // Shift left (overlapping)
     if (_spaceUsed > len)
         memmove(_space, _space + len, _spaceUsed - len);
@@ -56,15 +58,28 @@ bool PacketBuffer::tryPop(uint8_t* packet, unsigned* packetLen) {
     return true;
 }
 
-bool PacketBuffer::tryPeek(uint8_t* packet, unsigned* len) {
+bool PacketBuffer::tryPeek(uint8_t* packet, unsigned* packetLen) {
     if (_spaceUsed == 0)
         return false;
     // Get length of first packet
-    uint16_t len = unpack_uint16_be(_space + _lenOffset);
+    unsigned len = unpack_uint16_be(_space + _lenOffset);
+    // Buffer is truncated if it is too long to it in the space
+    unsigned copyLen = std::min(len, *packetLen);
     // Show the packet to the caller
-    memcpy(packet, _space, len);
-    *packetLen = len;
+    memcpy(packet, _space, copyLen);
+    *packetLen = copyLen;
     return true;
+}
+
+void PacketBuffer::pop() {
+    if (_spaceUsed == 0)
+        return;
+    // Get length of first packet
+    unsigned len = unpack_uint16_be(_space + _lenOffset);
+    // Shift left (overlapping)
+    if (_spaceUsed > len)
+        memmove(_space, _space + len, _spaceUsed - len);
+    _spaceUsed -= len;
 }
 
 void PacketBuffer::visitAll(std::function<void(const uint8_t* packet, unsigned len)> cb) {

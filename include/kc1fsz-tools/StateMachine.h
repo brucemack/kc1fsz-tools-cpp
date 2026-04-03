@@ -43,6 +43,7 @@ public:
     StateMachine& operator=(int state) { setState(state); return *this; }
     void setState(int state, unsigned timeoutMs, int timeoutState);
     void checkTimeout();
+    int getState() const { return _state; }
 
 private:
 
