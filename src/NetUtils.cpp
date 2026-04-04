@@ -417,6 +417,18 @@ int extractIE_uint32(const uint8_t* packet, unsigned packetLen,
     }     
 }
 
+int extractIE_uint16(const uint8_t* packet, unsigned packetLen, 
+    uint8_t id, uint16_t* result) {
+    uint8_t buf[2];
+    int rc = extractIE_raw(packet, packetLen, id, buf, sizeof(buf));
+    if (rc == 2) {
+        *result = unpack_uint16_be(buf);
+        return 0;
+    } else {
+        return rc;
+    }     
+}
+
 int extractIE_uint8(const uint8_t* packet, unsigned packetLen, 
     uint8_t id, uint8_t* result) {
     uint8_t buf[1];

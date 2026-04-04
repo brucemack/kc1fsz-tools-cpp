@@ -137,6 +137,13 @@ int extractIE_raw(const uint8_t* packet, unsigned packetLen,
 int extractIE_uint32(const uint8_t* packet, unsigned packetLen, 
     uint8_t id, uint32_t* result);
 
+/**
+ * Extracts a number encoded in big-endian format.
+ * @returns -2 if not found, otherwise 0
+ */
+int extractIE_uint16(const uint8_t* packet, unsigned packetLen, 
+    uint8_t id, uint16_t* result);
+
 int extractIE_uint8(const uint8_t* packet, unsigned packetLen, 
     uint8_t id, uint8_t* result);
 
