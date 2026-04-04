@@ -41,6 +41,27 @@ bool PacketBuffer::push(const uint8_t* packet, unsigned len) {
     return true;
 }
 
+bool PacketBuffer::push(const uint8_t* packet0, unsigned len0, 
+    const uint8_t* packet1, unsigned len1) {
+    // Make sure the new packet can fit
+    if (_spaceUsed + len0 + len1 > _spaceCapacity)
+        return false;
+    // Make sure the length indicator fits in the packet
+    if (_lenOffset + 2 >= len0 + len1)
+        return false;
+    // Pull the packet together in the buffer
+    if (len0)
+        memcpy(_space + _spaceUsed, packet0, len0);
+    if (len1)
+        memcpy(_space + _spaceUsed + len0, packet1, len1);
+    // Make sure there is no inconsistency
+    uint16_t embeddedLen = unpack_uint16_be(_space + _spaceUsed + _lenOffset);
+    if (embeddedLen != (len0 + len1))
+        return false;
+    _spaceUsed += (len0 + len1);
+    return true;
+}
+
 bool PacketBuffer::tryPop(uint8_t* packet, unsigned* packetLen) {
     if (_spaceUsed == 0)
         return false;

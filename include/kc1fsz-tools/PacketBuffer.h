@@ -46,6 +46,15 @@ public:
     bool push(const uint8_t* packet, unsigned len);
 
     /**
+     * Has exactly the same semantics of push, but takes the packet in two
+     * parts that will be concatenated on the queue. This can be helpful
+     * when the header and body of a packet are coming in two parts.
+     *
+     * @returns true if successful, false if no (i.e. no space)
+     */
+    bool push(const uint8_t* packet0, unsigned len0, const uint8_t* packet1, unsigned len1);
+
+    /**
      * Packet will be truncated if it's not large enough to fit in the space
      * provided.
      * @param len Should start off pointing to the available space. Will be 
