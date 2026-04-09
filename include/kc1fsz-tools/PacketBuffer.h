@@ -55,6 +55,10 @@ public:
     bool push(uint32_t stamp, const uint8_t* packet0, unsigned len0, 
         const uint8_t* packet1, unsigned len1);
 
+    bool push(uint32_t stamp, const uint8_t* packet0, unsigned len0, 
+        const uint8_t* packet1, unsigned len1,
+        const uint8_t* packet2, unsigned len2);
+
     /**
      * Packet will be truncated if it's not large enough to fit in the space
      * provided.

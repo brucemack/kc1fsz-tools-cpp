@@ -58,6 +58,31 @@ bool PacketBuffer::push(uint32_t stamp, const uint8_t* packet0, unsigned len0,
     return true;
 }
 
+// #### CONSOLIDATE THESE THREE METHODS
+
+bool PacketBuffer::push(uint32_t stamp, const uint8_t* packet0, unsigned len0, 
+    const uint8_t* packet1, unsigned len1, const uint8_t* packet2, unsigned len2) {
+    // Make sure the new packet can fit
+    if (_spaceUsed + HL + len0 + len1 + len2 > _spaceCapacity)
+        return false;
+    Header hdr = { .len = HL + len0 + len1 + len2, .stamp = stamp };
+    memcpy(_space + _spaceUsed, &hdr, HL);
+    _spaceUsed += HL;
+    if (len0) {
+        memcpy(_space + _spaceUsed, packet0, len0);
+        _spaceUsed += len0;
+    }
+    if (len1) {
+        memcpy(_space + _spaceUsed, packet1, len1);
+        _spaceUsed += len1;
+    }
+    if (len1) {
+        memcpy(_space + _spaceUsed, packet2, len2);
+        _spaceUsed += len2;
+    }
+    return true;
+}
+
 bool PacketBuffer::tryPop(uint32_t* stamp, uint8_t* packet, unsigned* packetLen) {
     return _tryPeekPop(stamp, packet, packetLen, true);
 }
