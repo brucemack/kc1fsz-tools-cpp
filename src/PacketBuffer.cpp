@@ -61,17 +61,18 @@ bool PacketBuffer::tryPop(uint32_t* stamp, uint8_t* packet, unsigned* packetLen)
     if (_spaceUsed == 0)
         return false;
     const Header* hdr = (const Header*)_space;
+    const unsigned bufferLen = hdr->len;
     // Buffer is truncated if it is too long to it in the space
-    unsigned copyLen = std::min(hdr->len - (unsigned)sizeof(Header), *packetLen);
+    unsigned copyLen = std::min(bufferLen - (unsigned)sizeof(Header), *packetLen);
     // Give the packet to the caller
     memcpy(packet, _space + sizeof(Header), copyLen);
     if (stamp)
         *stamp = hdr->stamp;
     *packetLen = copyLen;
-    // Shift left (overlapping)
-    if (_spaceUsed > hdr->len)
-        memmove(_space, _space + hdr->len, _spaceUsed - hdr->len);
-    _spaceUsed -= hdr->len;
+    // Shift left (overlapping!)
+    if (_spaceUsed > bufferLen)
+        memmove(_space, _space + bufferLen, _spaceUsed - bufferLen);
+    _spaceUsed -= bufferLen;
     return true;
 }
 
