@@ -65,7 +65,8 @@ bool PacketBuffer::tryPop(uint32_t* stamp, uint8_t* packet, unsigned* packetLen)
     unsigned copyLen = std::min(hdr->len - (unsigned)sizeof(Header), *packetLen);
     // Give the packet to the caller
     memcpy(packet, _space + sizeof(Header), copyLen);
-    *stamp = hdr->stamp;
+    if (stamp)
+        *stamp = hdr->stamp;
     *packetLen = copyLen;
     // Shift left (overlapping)
     if (_spaceUsed > hdr->len)
@@ -82,7 +83,8 @@ bool PacketBuffer::tryPeek(uint32_t* stamp, uint8_t* packet, unsigned* packetLen
     unsigned copyLen = std::min(hdr->len - (unsigned)sizeof(Header), *packetLen);
     // Show the packet to the caller
     memcpy(packet, _space + sizeof(Header), copyLen);
-    *stamp = hdr->stamp;
+    if (stamp)
+        *stamp = hdr->stamp;
     *packetLen = copyLen;
     return true;
 }
