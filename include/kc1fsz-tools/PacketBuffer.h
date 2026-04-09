@@ -43,7 +43,7 @@ public:
     /**
      * @returns true if successful, false if no (i.e. no space)
      */
-    bool push(const uint8_t* packet, unsigned len);
+    bool push(uint32_t stamp, const uint8_t* packet, unsigned len);
 
     /**
      * Has exactly the same semantics of push, but takes the packet in two
@@ -52,7 +52,8 @@ public:
      *
      * @returns true if successful, false if no (i.e. no space)
      */
-    bool push(const uint8_t* packet0, unsigned len0, const uint8_t* packet1, unsigned len1);
+    bool push(uint32_t stamp, const uint8_t* packet0, unsigned len0, 
+        const uint8_t* packet1, unsigned len1);
 
     /**
      * Packet will be truncated if it's not large enough to fit in the space
@@ -61,7 +62,7 @@ public:
      * overwritten with the size of the packet popped.
      * @returns false if the buffer was empty.
      */
-    bool tryPop(uint8_t* packet, unsigned* len);
+    bool tryPop(uint32_t* stamp, uint8_t* packet, unsigned* len);
 
     /**
      * Provides a peek at the first element without removing it.
@@ -71,18 +72,18 @@ public:
      * overwritten with the size of the packet peeked.
      * @returns false if the buffer was empty
      */
-    bool tryPeek(uint8_t* packet, unsigned* len);
+    bool tryPeek(uint32_t* stamp, uint8_t* packet, unsigned* len);
 
     /**
      * Takes off the first item, if any.
      */
     void pop();
 
-    void visitAll(std::function<void(const uint8_t* packet, unsigned len)> cb);
+    void visitAll(std::function<void(uint32_t stamp, const uint8_t* packet, unsigned len)> cb);
 
-    void removeFirstIf(std::function<bool(const uint8_t* packet, unsigned len)> cb);
+    void removeFirstIf(std::function<bool(uint32_t stamp, const uint8_t* packet, unsigned len)> cb);
 
-    void removeIf(std::function<bool(const uint8_t* packet, unsigned len)> cb,
+    void removeIf(std::function<bool(uint32_t stamp, const uint8_t* packet, unsigned len)> cb,
         bool firstOnly = false);
 
 private:

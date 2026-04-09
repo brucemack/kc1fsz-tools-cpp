@@ -26,7 +26,7 @@ void PacketBuffer::clear() {
     _spaceUsed = 0;
 }
 
-bool PacketBuffer::push(const uint8_t* packet, unsigned len) {
+bool PacketBuffer::push(uint32_t stamp, const uint8_t* packet, unsigned len) {
     if (_spaceUsed + len > _spaceCapacity)
         return false;
     if (_lenOffset >= len)
@@ -41,7 +41,7 @@ bool PacketBuffer::push(const uint8_t* packet, unsigned len) {
     return true;
 }
 
-bool PacketBuffer::push(const uint8_t* packet0, unsigned len0, 
+bool PacketBuffer::push(uint32_t stamp, const uint8_t* packet0, unsigned len0, 
     const uint8_t* packet1, unsigned len1) {
     // Make sure the new packet can fit
     if (_spaceUsed + len0 + len1 > _spaceCapacity)
@@ -62,7 +62,7 @@ bool PacketBuffer::push(const uint8_t* packet0, unsigned len0,
     return true;
 }
 
-bool PacketBuffer::tryPop(uint8_t* packet, unsigned* packetLen) {
+bool PacketBuffer::tryPop(uint32_t* stamp, uint8_t* packet, unsigned* packetLen) {
     if (_spaceUsed == 0)
         return false;
     // Get length of first packet
@@ -79,7 +79,7 @@ bool PacketBuffer::tryPop(uint8_t* packet, unsigned* packetLen) {
     return true;
 }
 
-bool PacketBuffer::tryPeek(uint8_t* packet, unsigned* packetLen) {
+bool PacketBuffer::tryPeek(uint32_t* stamp, uint8_t* packet, unsigned* packetLen) {
     if (_spaceUsed == 0)
         return false;
     // Get length of first packet
@@ -103,27 +103,27 @@ void PacketBuffer::pop() {
     _spaceUsed -= len;
 }
 
-void PacketBuffer::visitAll(std::function<void(const uint8_t* packet, unsigned len)> cb) {
+void PacketBuffer::visitAll(std::function<void(uint32_t stamp, const uint8_t* packet, unsigned len)> cb) {
     unsigned i = 0;
     while (i < _spaceUsed) {
         uint16_t len = unpack_uint16_be(_space + i + _lenOffset);
-        cb(_space + i, len);
+        cb(0, _space + i, len);
         i += len;
     }
 }
 
-void PacketBuffer::removeFirstIf(std::function<bool(const uint8_t* packet, unsigned len)> cb) {
+void PacketBuffer::removeFirstIf(std::function<bool(uint32_t stamp, const uint8_t* packet, unsigned len)> cb) {
     removeIf(cb, true);
 }
 
-void PacketBuffer::removeIf(std::function<bool(const uint8_t* packet, unsigned len)> cb,
+void PacketBuffer::removeIf(std::function<bool(uint32_t stamp, const uint8_t* packet, unsigned len)> cb,
     bool firstOnly) {    
     unsigned i = 0;
     while (i < _spaceUsed) {
         const uint16_t embeddedLen = unpack_uint16_be(_space + i + _lenOffset);
         assert(i + embeddedLen <= _spaceUsed);
         // Call the predicate to decide if we need to remove
-        if (cb(_space + i, embeddedLen)) {
+        if (cb(0, _space + i, embeddedLen)) {
             // Shift left (overlapping)
             if (_spaceUsed > i + embeddedLen)
                 memmove(_space + i, _space + i + embeddedLen, _spaceUsed - i - embeddedLen);
