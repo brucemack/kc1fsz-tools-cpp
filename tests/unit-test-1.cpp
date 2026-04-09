@@ -6,6 +6,7 @@
 #include "kc1fsz-tools/CircularQueuePointers.h"
 #include "kc1fsz-tools/CircularQueueWithTrigger.h"
 #include "kc1fsz-tools/GPSUtils.h"
+#include "kc1fsz-tools/PacketBuffer.h"
 
 using namespace std;
 using namespace kc1fsz;
@@ -178,8 +179,32 @@ static void gps1() {
     assert(t == 1774395442L);
 }
 
+static void packet1() {
+
+    uint8_t space[2048];
+    PacketBuffer buf(space, sizeof(space));
+
+    // 13
+    const char* temp = "Hello Izzy!\r\n";
+    buf.push(1000, (const uint8_t*)temp, strlen(temp));
+    buf.push(2000, (const uint8_t*)temp, strlen(temp));
+
+    char result[32];
+    uint32_t stamp;
+    unsigned len = 32;
+    assert(buf.tryPop(&stamp, (uint8_t*)result, &len));
+    assert(stamp == 1000);
+    assert(len == 13);
+
+    len = 32;
+    assert(buf.tryPop(&stamp, (uint8_t*)result, &len));
+    assert(stamp == 2000);
+    assert(len == 13);
+}
+
 int main(int,const char**) {
     math1();
     queue1();
     gps1();
+    packet1();
 }

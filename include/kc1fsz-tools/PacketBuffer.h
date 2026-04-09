@@ -26,11 +26,8 @@ namespace kc1fsz {
 class PacketBuffer {
 public:
 
-    /**
-     * IMPORTANT: Length is assumed to be 16-bits big-endian!
-     */
-    PacketBuffer(uint8_t* space, unsigned spaceCapacity, unsigned lenOffset)
-    :   _space(space), _spaceCapacity(spaceCapacity), _lenOffset(lenOffset) {        
+    PacketBuffer(uint8_t* space, unsigned spaceCapacity)
+    :   _space(space), _spaceCapacity(spaceCapacity) {        
     }
 
     void clear();
@@ -43,16 +40,17 @@ public:
     /**
      * @returns true if successful, false if no (i.e. no space)
      */
-    bool push(const uint8_t* packet, unsigned len);
+    bool push(uint32_t stamp, const uint8_t* packet, unsigned len);
 
     /**
      * Has exactly the same semantics of push, but takes the packet in two
      * parts that will be concatenated on the queue. This can be helpful
-     * when the header and body of a packet are coming in two parts.
+     * when a header and body of a packet are coming in two parts.
      *
      * @returns true if successful, false if no (i.e. no space)
      */
-    bool push(const uint8_t* packet0, unsigned len0, const uint8_t* packet1, unsigned len1);
+    bool push(uint32_t stamp, 
+        const uint8_t* packet0, unsigned len0, const uint8_t* packet1, unsigned len1);
 
     /**
      * Packet will be truncated if it's not large enough to fit in the space
@@ -61,7 +59,7 @@ public:
      * overwritten with the size of the packet popped.
      * @returns false if the buffer was empty.
      */
-    bool tryPop(uint8_t* packet, unsigned* len);
+    bool tryPop(uint32_t* stamp, uint8_t* packet, unsigned* len);
 
     /**
      * Provides a peek at the first element without removing it.
@@ -71,21 +69,28 @@ public:
      * overwritten with the size of the packet peeked.
      * @returns false if the buffer was empty
      */
-    bool tryPeek(uint8_t* packet, unsigned* len);
+    bool tryPeek(uint32_t* stamp, uint8_t* packet, unsigned* len);
 
     /**
      * Takes off the first item, if any.
      */
     void pop();
 
-    void visitAll(std::function<void(const uint8_t* packet, unsigned len)> cb);
+    void visitAll(std::function<void(uint32_t stamp, const uint8_t* packet, unsigned len)> cb);
 
-    void removeFirstIf(std::function<bool(const uint8_t* packet, unsigned len)> cb);
+    void removeFirstIf(std::function<bool(uint32_t stamp, const uint8_t* packet, unsigned len)> cb);
 
-    void removeIf(std::function<bool(const uint8_t* packet, unsigned len)> cb,
+    void removeIf(std::function<bool(uint32_t stamp, const uint8_t* packet, unsigned len)> cb,
         bool firstOnly = false);
 
 private:
+
+    // Every entry starts with this 
+    struct Header {
+        // Inclusive of header
+        uint32_t len;
+        uint32_t stamp;
+    };
 
     uint8_t* _space;
     unsigned _spaceCapacity;
