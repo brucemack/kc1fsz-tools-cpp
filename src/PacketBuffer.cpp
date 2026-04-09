@@ -20,6 +20,8 @@
 #include "kc1fsz-tools/Common.h"
 #include "kc1fsz-tools/PacketBuffer.h"
 
+#define HL ((unsigned)sizeof(Header))
+
 namespace kc1fsz {
 
 void PacketBuffer::clear() {
@@ -27,15 +29,11 @@ void PacketBuffer::clear() {
 }
 
 bool PacketBuffer::push(uint32_t stamp, const uint8_t* packet, unsigned len) {
-    if (_spaceUsed + len > _spaceCapacity)
+    if (_spaceUsed + HL + len > _spaceCapacity)
         return false;
-    if (_lenOffset >= len)
-        return false;
-    // Make sure there is no inconsistency
-    uint16_t embeddedLen = unpack_uint16_be(packet + _lenOffset);
-    if (embeddedLen != len)
-        return false;
-    // Pull onto end of space
+    Header hdr = { .len = HL + len, .stamp = stamp };
+    memcpy(_space + _spaceUsed, &hdr, HL);
+    _spaceUsed += HL;
     memcpy(_space + _spaceUsed, packet, len);
     _spaceUsed += len;
     return true;
@@ -44,59 +42,55 @@ bool PacketBuffer::push(uint32_t stamp, const uint8_t* packet, unsigned len) {
 bool PacketBuffer::push(uint32_t stamp, const uint8_t* packet0, unsigned len0, 
     const uint8_t* packet1, unsigned len1) {
     // Make sure the new packet can fit
-    if (_spaceUsed + len0 + len1 > _spaceCapacity)
+    if (_spaceUsed + HL + len0 + len1 > _spaceCapacity)
         return false;
-    // Make sure the length indicator fits in the packet
-    if (_lenOffset + 2 >= len0 + len1)
-        return false;
-    // Pull the packet together in the buffer
-    if (len0)
+    Header hdr = { .len = HL + len0 + len1, .stamp = stamp };
+    memcpy(_space + _spaceUsed, &hdr, HL);
+    _spaceUsed += HL;
+    if (len0) {
         memcpy(_space + _spaceUsed, packet0, len0);
-    if (len1)
-        memcpy(_space + _spaceUsed + len0, packet1, len1);
-    // Make sure there is no inconsistency
-    uint16_t embeddedLen = unpack_uint16_be(_space + _spaceUsed + _lenOffset);
-    if (embeddedLen != (len0 + len1))
-        return false;
-    _spaceUsed += (len0 + len1);
+        _spaceUsed += len0;
+    }
+    if (len1) {
+        memcpy(_space + _spaceUsed, packet1, len1);
+        _spaceUsed += len1;
+    }
     return true;
 }
 
 bool PacketBuffer::tryPop(uint32_t* stamp, uint8_t* packet, unsigned* packetLen) {
-    if (_spaceUsed == 0)
-        return false;
-    // Get length of first packet
-    unsigned len = unpack_uint16_be(_space + _lenOffset);
-    // Buffer is truncated if it is too long to it in the space
-    unsigned copyLen = std::min(len, *packetLen);
-    // Give the packet to the caller
-    memcpy(packet, _space, copyLen);
-    *packetLen = copyLen;
-    // Shift left (overlapping)
-    if (_spaceUsed > len)
-        memmove(_space, _space + len, _spaceUsed - len);
-    _spaceUsed -= len;
-    return true;
+    return _tryPeekPop(stamp, packet, packetLen, true);
 }
 
 bool PacketBuffer::tryPeek(uint32_t* stamp, uint8_t* packet, unsigned* packetLen) {
+    return _tryPeekPop(stamp, packet, packetLen, false);
+}
+
+bool PacketBuffer::_tryPeekPop(uint32_t* stamp, uint8_t* packet, unsigned* packetLen, bool pop) {
     if (_spaceUsed == 0)
         return false;
-    // Get length of first packet
-    unsigned len = unpack_uint16_be(_space + _lenOffset);
+    const unsigned len = ((Header*)_space)->len;
+    const uint32_t packetStamp = ((Header*)_space)->stamp;
     // Buffer is truncated if it is too long to it in the space
-    unsigned copyLen = std::min(len, *packetLen);
-    // Show the packet to the caller
-    memcpy(packet, _space, copyLen);
+    unsigned copyLen = std::min(len - HL, *packetLen);
+    // Give the packet to the caller
+    memcpy(packet, _space + HL, copyLen);
     *packetLen = copyLen;
+    if (stamp)
+        *stamp = packetStamp;
+    if (pop) {
+        // Shift left (overlapping)
+        if (_spaceUsed > len)
+            memmove(_space, _space + len, _spaceUsed - len);
+        _spaceUsed -= len;
+    }
     return true;
 }
 
 void PacketBuffer::pop() {
     if (_spaceUsed == 0)
         return;
-    // Get length of first packet
-    unsigned len = unpack_uint16_be(_space + _lenOffset);
+    const unsigned len = ((Header*)_space)->len;
     // Shift left (overlapping)
     if (_spaceUsed > len)
         memmove(_space, _space + len, _spaceUsed - len);
@@ -106,8 +100,9 @@ void PacketBuffer::pop() {
 void PacketBuffer::visitAll(std::function<void(uint32_t stamp, const uint8_t* packet, unsigned len)> cb) {
     unsigned i = 0;
     while (i < _spaceUsed) {
-        uint16_t len = unpack_uint16_be(_space + i + _lenOffset);
-        cb(0, _space + i, len);
+        const unsigned len = ((Header*)_space)->len;
+        const uint32_t packetStamp = ((Header*)_space)->stamp;
+        cb(packetStamp, _space + i + HL, len - HL);
         i += len;
     }
 }
@@ -120,21 +115,21 @@ void PacketBuffer::removeIf(std::function<bool(uint32_t stamp, const uint8_t* pa
     bool firstOnly) {    
     unsigned i = 0;
     while (i < _spaceUsed) {
-        const uint16_t embeddedLen = unpack_uint16_be(_space + i + _lenOffset);
-        assert(i + embeddedLen <= _spaceUsed);
+        const unsigned len = ((Header*)_space)->len;
+        const uint32_t packetStamp = ((Header*)_space)->stamp;
         // Call the predicate to decide if we need to remove
-        if (cb(0, _space + i, embeddedLen)) {
+        if (cb(packetStamp, _space + i + HL, len - HL)) {
             // Shift left (overlapping)
-            if (_spaceUsed > i + embeddedLen)
-                memmove(_space + i, _space + i + embeddedLen, _spaceUsed - i - embeddedLen);
-            _spaceUsed -= embeddedLen;
+            if (_spaceUsed > i + len)
+                memmove(_space + i, _space + i + len, _spaceUsed - i - len);
+            _spaceUsed -= len;
             if (firstOnly)
                 return;
             // Here i stays in the same place (no forward progress made)
         }
         else {
             // Move right to the next packet
-            i += embeddedLen;
+            i += len;
         }
     }
 }

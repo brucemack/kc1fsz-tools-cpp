@@ -29,8 +29,8 @@ public:
     /**
      * IMPORTANT: Length is assumed to be 16-bits big-endian!
      */
-    PacketBuffer(uint8_t* space, unsigned spaceCapacity, unsigned lenOffset)
-    :   _space(space), _spaceCapacity(spaceCapacity), _lenOffset(lenOffset) {        
+    PacketBuffer(uint8_t* space, unsigned spaceCapacity)
+    :   _space(space), _spaceCapacity(spaceCapacity) {        
     }
 
     void clear();
@@ -88,10 +88,16 @@ public:
 
 private:
 
+    struct Header {
+        unsigned len;
+        uint32_t stamp;
+    };
+
     uint8_t* _space;
     unsigned _spaceCapacity;
     unsigned _spaceUsed = 0;
-    unsigned _lenOffset;
+
+    bool _tryPeekPop(uint32_t* stamp, uint8_t* packet, unsigned* packetLen, bool pop);
 };
 
 }
