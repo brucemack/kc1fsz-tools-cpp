@@ -76,7 +76,7 @@ bool PacketBuffer::push(uint32_t stamp, const uint8_t* packet0, unsigned len0,
         memcpy(_space + _spaceUsed, packet1, len1);
         _spaceUsed += len1;
     }
-    if (len1) {
+    if (len2) {
         memcpy(_space + _spaceUsed, packet2, len2);
         _spaceUsed += len2;
     }
@@ -125,8 +125,8 @@ void PacketBuffer::pop() {
 void PacketBuffer::visitAll(std::function<void(uint32_t stamp, const uint8_t* packet, unsigned len)> cb) {
     unsigned i = 0;
     while (i < _spaceUsed) {
-        const unsigned len = ((Header*)_space)->len;
-        const uint32_t packetStamp = ((Header*)_space)->stamp;
+        const unsigned len = ((Header*)(_space + i))->len;
+        const uint32_t packetStamp = ((Header*)(_space + i))->stamp;
         cb(packetStamp, _space + i + HL, len - HL);
         i += len;
     }
@@ -140,8 +140,8 @@ void PacketBuffer::removeIf(std::function<bool(uint32_t stamp, const uint8_t* pa
     bool firstOnly) {    
     unsigned i = 0;
     while (i < _spaceUsed) {
-        const unsigned len = ((Header*)_space)->len;
-        const uint32_t packetStamp = ((Header*)_space)->stamp;
+        const unsigned len = ((Header*)(_space + i))->len;
+        const uint32_t packetStamp = ((Header*)(_space + i))->stamp;
         // Call the predicate to decide if we need to remove
         if (cb(packetStamp, _space + i + HL, len - HL)) {
             // Shift left (overlapping)
