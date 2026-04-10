@@ -48,13 +48,20 @@ public:
     /**
      * Has exactly the same semantics of push, but takes the packet in two
      * parts that will be concatenated on the queue. This can be helpful
-     * when the header and body of a packet are coming in two parts.
+     * when the header and body of a packet are coming in separate  parts.
      *
      * @returns true if successful, false if no (i.e. no space)
      */
     bool push(uint32_t stamp, const uint8_t* packet0, unsigned len0, 
         const uint8_t* packet1, unsigned len1);
 
+    /**
+     * Has exactly the same semantics of push, but takes the packet in three
+     * parts that will be concatenated on the queue. This can be helpful
+     * when the header and body of a packet are coming in separate parts.
+     *
+     * @returns true if successful, false if no (i.e. no space)
+     */
     bool push(uint32_t stamp, const uint8_t* packet0, unsigned len0, 
         const uint8_t* packet1, unsigned len1,
         const uint8_t* packet2, unsigned len2);
@@ -83,11 +90,14 @@ public:
      */
     void pop();
 
-    void visitAll(std::function<void(uint32_t stamp, const uint8_t* packet, unsigned len)> cb);
+    void visitAll(std::function<void(uint32_t stamp, const uint8_t* packet, unsigned len)> visitor);
 
-    void removeFirstIf(std::function<bool(uint32_t stamp, const uint8_t* packet, unsigned len)> cb);
+    void removeFirstIf(std::function<bool(uint32_t stamp, const uint8_t* packet, unsigned len)> pred);
 
-    void removeIf(std::function<bool(uint32_t stamp, const uint8_t* packet, unsigned len)> cb,
+    /**
+     * @param firstOnly If this is true then the process stops after the first match.
+     */
+    void removeIf(std::function<bool(uint32_t stamp, const uint8_t* packet, unsigned len)> pred,
         bool firstOnly = false);
 
 private:

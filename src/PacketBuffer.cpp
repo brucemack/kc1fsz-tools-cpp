@@ -29,36 +29,13 @@ void PacketBuffer::clear() {
 }
 
 bool PacketBuffer::push(uint32_t stamp, const uint8_t* packet, unsigned len) {
-    if (_spaceUsed + HL + len > _spaceCapacity)
-        return false;
-    Header hdr = { .len = HL + len, .stamp = stamp };
-    memcpy(_space + _spaceUsed, &hdr, HL);
-    _spaceUsed += HL;
-    memcpy(_space + _spaceUsed, packet, len);
-    _spaceUsed += len;
-    return true;
+    return push(stamp, packet, len, 0, 0, 0, 0);
 }
 
 bool PacketBuffer::push(uint32_t stamp, const uint8_t* packet0, unsigned len0, 
     const uint8_t* packet1, unsigned len1) {
-    // Make sure the new packet can fit
-    if (_spaceUsed + HL + len0 + len1 > _spaceCapacity)
-        return false;
-    Header hdr = { .len = HL + len0 + len1, .stamp = stamp };
-    memcpy(_space + _spaceUsed, &hdr, HL);
-    _spaceUsed += HL;
-    if (len0) {
-        memcpy(_space + _spaceUsed, packet0, len0);
-        _spaceUsed += len0;
-    }
-    if (len1) {
-        memcpy(_space + _spaceUsed, packet1, len1);
-        _spaceUsed += len1;
-    }
-    return true;
+    return push(stamp, packet0, len0, packet1, len1, 0, 0);
 }
-
-// #### CONSOLIDATE THESE THREE METHODS
 
 bool PacketBuffer::push(uint32_t stamp, const uint8_t* packet0, unsigned len0, 
     const uint8_t* packet1, unsigned len1, const uint8_t* packet2, unsigned len2) {
