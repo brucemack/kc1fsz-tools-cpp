@@ -147,4 +147,17 @@ int extractIE_uint16(const uint8_t* packet, unsigned packetLen,
 int extractIE_uint8(const uint8_t* packet, unsigned packetLen, 
     uint8_t id, uint8_t* result);
 
+/**
+* Pulls a query parameter out of a string. The result will be null-terminated. Understands/
+* decodes URL encoding.
+* @returns -1 if not found, 0 if found.
+*/
+int extractQueryParam(const char* queryParams, const char* name, 
+    char* value, unsigned valueCapacity);
+
+/**
+ * Undoes the URL encoding, including "+" -> " "
+ */
+void urlDecode(const char *src, char *dst, unsigned dstCapacity);
+
 }

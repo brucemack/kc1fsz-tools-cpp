@@ -22,6 +22,7 @@
 #endif 
 
 #include <fcntl.h>
+#include <ctype.h>
 
 #include <cassert>
 #include <cstring>
@@ -440,5 +441,95 @@ int extractIE_uint8(const uint8_t* packet, unsigned packetLen,
         return rc;
     }     
 }
+
+int extractQueryParam(const char* q, const char* name, 
+    char* value, unsigned valueCapacity) {
+
+    int state = 0;
+    char pname[64] = { 0 };
+    char pvalue[64] = { 0 };
+    unsigned ptr = 0;
+    bool found = false;
+
+    for (unsigned i = 0; i <= strlen(q); i++) {
+        if (state == 0) {
+            if (q[i] == 0) {
+                break;
+            }
+            else if (q[i] == '=') {
+                state = 1;
+                ptr = 0;
+            } else {
+                // Leave space for null
+                if (ptr < sizeof(pname) - 1) {
+                    pname[ptr++] = q[i];
+                    pname[ptr] = 0;
+                }
+            }
+        } else if (state == 1) {
+            if (q[i] == '&' || q[i] == 0) {
+                // Process a complete name/value pair. Does the name match the 
+                // target?
+                if (strcmp(pname, name) == 0) {
+                    //strcpyLimited(value, pvalue, valueCapacity);
+                    urlDecode(pvalue, value, valueCapacity);
+                    found = true;
+                    break;
+                }
+                // Go back to consume another name/value
+                state = 0;
+                ptr = 0;
+            } else {
+                // Leave space for null
+                if (ptr < sizeof(pvalue) - 1) {
+                    pvalue[ptr++] = q[i];
+                    pvalue[ptr] = 0;
+                }
+            }
+
+        }
+    }
+
+    if (found)
+        return 0;        
+    else 
+        return -1;
+}
+
+void urlDecode(const char *src, char *dst, unsigned dstCapacity) {
+
+    char a, b;
+    unsigned ptr = 0;
+
+    while (*src) {
+        if ((*src == '%') &&
+            ((a = src[1]) && (b = src[2])) &&
+            (isxdigit(a) && isxdigit(b))) {
+            if (a >= 'a') a -= 'a' - 'A';
+            if (a >= 'A') a -= ('A' - 10);
+            else a -= '0';
+            if (b >= 'a') b -= 'a' - 'A';
+            if (b >= 'A') b -= ('A' - 10);
+            else b -= '0';
+            if (ptr < dstCapacity - 1) {
+                dst[ptr++] = 16 * a + b;
+                dst[ptr] = 0;
+            }
+            src += 3;
+        } else if (*src == '+') {
+            if (ptr < dstCapacity - 1) {
+                dst[ptr++] = ' ';
+                dst[ptr] = 0;
+            }
+            src++;
+        } else {
+            if (ptr < dstCapacity - 1) {
+                dst[ptr++] = *src++;
+                dst[ptr] = 0;
+            }
+        }
+    }
+}
+
 
 }
