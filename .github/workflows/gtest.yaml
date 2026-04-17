@@ -1,0 +1,27 @@
+name: GTest CI
+on: [push, pull_request]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive # Required if GTest is a submodule
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ libgtest-dev
+
+      - name: Configure and Build
+        run: |
+          mkdir build && cd build
+          cmake ..
+          make
+
+      - name: Run Tests
+        run: |
+          cd build
+          ctest
