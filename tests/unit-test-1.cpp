@@ -1,3 +1,5 @@
+#include <gtest/gtest.h>
+
 #include <iostream>
 #include <cassert>
 #include <cstring>
@@ -162,24 +164,33 @@ static void queue1() {
     assert(ptrs.getMaxContiguousPopLength() == 3);
 }
 
-static void gps1() {
+TEST(UnitTest1, gps1) {
 
     const char* sent1 = "$GNRMC,183722.000,A,4218.20250,N,07118.07083,W,0.00,152.45,240326,,,A,V*1A";
     char tokens[10][16];
     int tokenCount = tokenizeNMEASentence(sent1, tokens, 10, 16);
-    assert(tokenCount == 10);
+    ASSERT_EQ(tokenCount, 10);
 
     struct tm tm_out;
     int rc = parseTimeFromGPRMC(tokens, tokenCount, &tm_out);
-    assert(rc == 0);
-    assert(tm_out.tm_year == 126);
+    ASSERT_EQ(rc, 0);
+    ASSERT_EQ(tm_out.tm_year, 126);
 
     time_t t = mktime(&tm_out);
-    assert(t == 1774395442L);
+    ASSERT_EQ(t, 1774395442L);
 }
 
+// Demonstrate some basic assertions.
+TEST(UnitTest1), BasicAssertions) {
+  // Expect two strings not to be equal.
+  EXPECT_STRNE("hello", "world");
+  // Expect equality.
+  EXPECT_EQ(7 * 6, 42);
+}
+/*
 int main(int,const char**) {
     math1();
     queue1();
     gps1();
 }
+*/

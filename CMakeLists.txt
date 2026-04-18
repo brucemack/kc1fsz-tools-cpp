@@ -131,6 +131,14 @@ add_executable(unit-test-1
 target_include_directories(unit-test-1 PRIVATE src)
 target_include_directories(unit-test-1 PRIVATE include)
 
+target_link_libraries(
+  unit-test-1
+  GTest::gtest_main
+)
+
+include(GoogleTest)
+gtest_discover_tests(unit-test-1)
+
 # ------ ntp-test-1 ---------------------------------------------------------
 # Target: Host
 
