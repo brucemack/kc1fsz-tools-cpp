@@ -181,7 +181,7 @@ TEST(UnitTest1, gps1) {
 }
 
 // Demonstrate some basic assertions.
-TEST(UnitTest1), BasicAssertions) {
+TEST(UnitTest1, BasicAssertions) {
   // Expect two strings not to be equal.
   EXPECT_STRNE("hello", "world");
   // Expect equality.
