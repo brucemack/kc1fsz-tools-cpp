@@ -56,6 +56,8 @@ add_executable(audio-test-1
   src/AudioAnalyzer.cpp
 ) 
 
+set_target_properties(audio-test-1 PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
 target_include_directories(audio-test-1 PRIVATE src)
 target_include_directories(audio-test-1 PRIVATE include)
 
@@ -66,6 +68,8 @@ add_executable(uart-test-1
   tests/rp2040/uart-test-1.cpp
   src/rp2040/PicoUartChannel.cpp
 )
+
+set_target_properties(uart-test-1 PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 if(DEFINED ENV{PICO_BUILD})
 pico_enable_stdio_usb(uart-test-1 1)
@@ -85,6 +89,8 @@ add_executable(dns-test-1
   src/MicroDNS.cpp
   src/NetUtils.cpp
 ) 
+
+set_target_properties(dns-test-1 PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 target_include_directories(dns-test-1 PRIVATE src)
 target_include_directories(dns-test-1 PRIVATE include)
@@ -109,6 +115,8 @@ add_executable(net-test-1
   src/Common.cpp
 ) 
 
+set_target_properties(net-test-1 PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
 target_include_directories(net-test-1 PRIVATE src)
 target_include_directories(net-test-1 PRIVATE include)
 
@@ -118,7 +126,6 @@ add_executable(unit-test-1
   tests/unit-test-1.cpp
   src/Common.cpp
   src/GPSUtils.cpp
-  src/NetUtils.cpp
 ) 
 
 target_include_directories(unit-test-1 PRIVATE src)
@@ -135,6 +142,8 @@ add_executable(ntp-test-1
   src/linux/StdClock.cpp
 ) 
 
+set_target_properties(ntp-test-1 PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
 target_include_directories(ntp-test-1 PRIVATE src)
 target_include_directories(ntp-test-1 PRIVATE include)
 
@@ -143,5 +152,7 @@ target_include_directories(ntp-test-1 PRIVATE include)
 add_executable(udp-recv
   tests/udp-recv.cpp
 ) 
+
+set_target_properties(udp-recv PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 target_include_directories(udp-recv PRIVATE src)

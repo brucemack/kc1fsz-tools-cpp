@@ -7,7 +7,17 @@
 using namespace std;
 using namespace kc1fsz;
 
-int main(int,const char**) {
+static void net_test_1() {
+    const char* params0 = "a=1&b=2%202++4%21";
+    char value[32];
+    assert(extractQueryParam(params0, "a", value, sizeof(value)) == 0);
+    assert(strcmp(value, "1") == 0);
+    assert(extractQueryParam(params0, "c", value, sizeof(value)) == -1);
+    assert(extractQueryParam(params0, "b", value, sizeof(value)) == 0);
+    assert(strcmp(value, "2 2  4!") == 0);
+}
+
+static net_test_2() {
     sockaddr_storage addr;
     char addrStr[64];
 
@@ -24,3 +34,9 @@ int main(int,const char**) {
 
     assert(parseIPAddrAndPort("10.11.12.13:01234567", addr) == -2);
 }
+
+int main(int,const char**) {
+    net_test_1();
+    net_test_2();
+}
+

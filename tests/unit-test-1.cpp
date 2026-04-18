@@ -6,7 +6,6 @@
 #include "kc1fsz-tools/CircularQueuePointers.h"
 #include "kc1fsz-tools/CircularQueueWithTrigger.h"
 #include "kc1fsz-tools/GPSUtils.h"
-#include "kc1fsz-tools/NetUtils.h"
 
 using namespace std;
 using namespace kc1fsz;
@@ -179,19 +178,8 @@ static void gps1() {
     assert(t == 1774395442L);
 }
 
-static void net_test_1() {
-    const char* params0 = "a=1&b=2%202++4%21";
-    char value[32];
-    assert(extractQueryParam(params0, "a", value, sizeof(value)) == 0);
-    assert(strcmp(value, "1") == 0);
-    assert(extractQueryParam(params0, "c", value, sizeof(value)) == -1);
-    assert(extractQueryParam(params0, "b", value, sizeof(value)) == 0);
-    assert(strcmp(value, "2 2  4!") == 0);
-}
-
 int main(int,const char**) {
     math1();
     queue1();
     gps1();
-    net_test_1();
 }
