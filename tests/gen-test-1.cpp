@@ -1,3 +1,5 @@
+#include <gtest/gtest.h>
+
 #include <cassert>
 #include <iostream>
 
@@ -9,7 +11,7 @@
 using namespace std;
 using namespace kc1fsz;
 
-void test_1() {
+TEST(GenTest1, test_1) {
     {
         const char* test0 = "this is a test";
         fixedstring c0[4];
@@ -34,7 +36,7 @@ void test_1() {
     }
 }
 
-void test_2() {
+TEST(GenTest1, test_2) {
 
     int objSpace[4];
     unsigned ptrSpace[4];
@@ -60,18 +62,16 @@ void test_2() {
 
     int count = 0;
     list.visitAll([&count](const int& a) {
-            cout << "Visited " << a << endl;
             count++;
             return true;
         }
     );   
-    assert(count == 3);
+    ASSERT_EQ(count, 3);
 
     // Selective visit
     count = 0;
     list.visitAll(
         [&count](const int& a) {
-            cout << "Visited " << a << endl;
             count++;
             return true;
         },
@@ -122,9 +122,4 @@ void test_2() {
     );
     assert(list.size() == 2);
     assert(list.first() == 2);
-}
-
-int main(int,const char**) {
-    test_1();
-    test_2();
 }

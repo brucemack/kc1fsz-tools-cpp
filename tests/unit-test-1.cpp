@@ -16,7 +16,7 @@ static void assertClose(float a, float b, float tol) {
     assert(abs(a - b) < tol);
 }
 
-static void math1() {
+TEST(UnitTest1,math1) {
     {
         // q15 times q15
         int16_t a = 0.25 * 32767.0;
@@ -71,7 +71,7 @@ static void math1() {
     }
 }
 
-static void queue1() {
+TEST(UnitTest1, queue1) {
 
     CircularQueuePointers ptrs(4);
     assert(ptrs.getDepth() == 0);
@@ -176,8 +176,11 @@ TEST(UnitTest1, gps1) {
     ASSERT_EQ(rc, 0);
     ASSERT_EQ(tm_out.tm_year, 126);
 
-    time_t t = mktime(&tm_out);
-    ASSERT_EQ(t, 1774395442L);
+    // IMPORTANT: mktime() operates on local time, not UTC!
+    //time_t t = mktime(&tm_out);
+    // This is the GMT equivalent
+    time_t t = timegm(&tm_out);
+    ASSERT_EQ(t, 1774377442L);
 }
 
 // Demonstrate some basic assertions.
@@ -187,10 +190,3 @@ TEST(UnitTest1, BasicAssertions) {
   // Expect equality.
   EXPECT_EQ(7 * 6, 42);
 }
-/*
-int main(int,const char**) {
-    math1();
-    queue1();
-    gps1();
-}
-*/

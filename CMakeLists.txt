@@ -23,6 +23,8 @@ project(kc1fsz-tools-cpp C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 23)
 
+# ==============================================================================
+# NEEDED FOR GTEST
 include(FetchContent)
 FetchContent_Declare(
   googletest
@@ -32,8 +34,9 @@ FetchContent_Declare(
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
-
 enable_testing()
+include(GoogleTest)
+# ==============================================================================
 
 if(DEFINED ENV{PICO_BUILD})
 pico_sdk_init()
@@ -43,9 +46,45 @@ if(DEFINED ENV{PICO_BUILD})
 message("----- PICO build ---------------------------------------------------------------")
 add_compile_options(-Wall -g)
 else()
-message("Desktop build!")
 add_compile_options(-fstack-protector-all -Wall -Wpedantic -g)
 endif()
+
+# ------ unit-test-1 ---------------------------------------------------------
+
+add_executable(unit-test-1
+  tests/unit-test-1.cpp
+  src/Common.cpp
+  src/GPSUtils.cpp
+) 
+
+target_include_directories(unit-test-1 PRIVATE src)
+target_include_directories(unit-test-1 PRIVATE include)
+
+# NEEDED FOR GTEST
+target_link_libraries(
+  unit-test-1
+  GTest::gtest_main
+)
+
+# NEEDED FOR GTEST
+gtest_discover_tests(unit-test-1)
+
+# ------ gen-test-1 ---------------------------------------------------------
+# Target: Host
+
+add_executable(gen-test-1
+  tests/gen-test-1.cpp
+  src/Common.cpp
+) 
+
+target_include_directories(gen-test-1 PRIVATE src)
+target_include_directories(gen-test-1 PRIVATE include)
+
+target_link_libraries(gen-test-1
+  GTest::gtest_main
+)
+
+gtest_discover_tests(gen-test-1)
 
 # ------ audio-test-1 ---------------------------------------------------------
 # Target: Host
@@ -95,17 +134,6 @@ set_target_properties(dns-test-1 PROPERTIES EXCLUDE_FROM_ALL TRUE)
 target_include_directories(dns-test-1 PRIVATE src)
 target_include_directories(dns-test-1 PRIVATE include)
 
-# ------ gen-test-1 ---------------------------------------------------------
-# Target: Host
-
-add_executable(gen-test-1
-  tests/gen-test-1.cpp
-  src/Common.cpp
-) 
-
-target_include_directories(gen-test-1 PRIVATE src)
-target_include_directories(gen-test-1 PRIVATE include)
-
 # ------ net-test-1 ---------------------------------------------------------
 # Target: Host
 
@@ -119,25 +147,6 @@ set_target_properties(net-test-1 PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 target_include_directories(net-test-1 PRIVATE src)
 target_include_directories(net-test-1 PRIVATE include)
-
-# ------ unit-test-1 ---------------------------------------------------------
-
-add_executable(unit-test-1
-  tests/unit-test-1.cpp
-  src/Common.cpp
-  src/GPSUtils.cpp
-) 
-
-target_include_directories(unit-test-1 PRIVATE src)
-target_include_directories(unit-test-1 PRIVATE include)
-
-target_link_libraries(
-  unit-test-1
-  GTest::gtest_main
-)
-
-include(GoogleTest)
-gtest_discover_tests(unit-test-1)
 
 # ------ ntp-test-1 ---------------------------------------------------------
 # Target: Host
