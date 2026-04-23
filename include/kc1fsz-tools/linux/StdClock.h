@@ -25,11 +25,19 @@ namespace kc1fsz {
 
 class StdClock : public Clock {
 public:
-    
+
+    void moveForwardUs(uint64_t adj);
+
+    // ----- From Clock ---------------------------------------------------
+
     virtual uint32_t time() const;
     virtual uint64_t timeUs() const;
 
     void setTime(uint32_t) { }
+
+private:
+
+    uint64_t _adjUs = 0;
 };
 
 }

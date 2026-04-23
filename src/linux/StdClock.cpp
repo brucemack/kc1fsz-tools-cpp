@@ -32,7 +32,11 @@ uint32_t StdClock::time() const {
 uint64_t StdClock::timeUs() const {
     timespec t1;
     clock_gettime(CLOCK_REALTIME, &t1);
-    return t1.tv_sec * 1000000 + t1.tv_nsec / 1000;
+    return (t1.tv_sec * 1000000 + t1.tv_nsec / 1000) + _adjUs;
+}
+
+void StdClock::moveForwardUs(uint64_t adj) { 
+    _adjUs += adj; 
 }
 
 }
