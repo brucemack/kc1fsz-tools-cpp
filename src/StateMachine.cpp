@@ -20,8 +20,17 @@
 
 namespace kc1fsz {
 
-StateMachine::StateMachine(Log& log, Clock& clock, int initialState)
-:   _log(log), _clock(clock), _initialState(initialState), _timeoutMs(0) {
+StateMachine::StateMachine()
+:   _clock(0), _initialState(0), _timeoutMs(0) {
+}
+
+StateMachine::StateMachine(Clock* clock, int initialState)
+:   _clock(clock), _initialState(initialState), _timeoutMs(0) {
+}
+
+void StateMachine::init(Clock* clock, int initialState) {
+    _clock = clock;
+    _initialState = initialState;
 }
 
 void StateMachine::reset() {
@@ -38,22 +47,26 @@ bool StateMachine::operator==(int state) const {
     return inState(state);
 }
 
+bool StateMachine::operator!=(int state) const {
+    return !inState(state);
+}
+
 void StateMachine::setState(int state) {
     _state = state;
-    _stateStartMs = _clock.timeMs();
+    _stateStartMs = _clock->timeMs();
     _timeoutMs = 0;
     _timeoutState = 0;
 }
 
 void StateMachine::setState(int state, unsigned timeoutMs, int timeoutState) {
     _state = state;
-    _stateStartMs = _clock.timeMs();
+    _stateStartMs = _clock->timeMs();
     _timeoutMs = timeoutMs;
     _timeoutState = timeoutState;
 }
 
 void StateMachine::checkTimeout() {
-    if (_timeoutMs != 0 && _clock.isPastWindow(_stateStartMs, _timeoutMs)) {
+    if (_timeoutMs != 0 && _clock->isPastWindow(_stateStartMs, _timeoutMs)) {
         setState(_timeoutState);
     }
 }

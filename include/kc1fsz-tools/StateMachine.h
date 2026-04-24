@@ -20,7 +20,6 @@
 
 namespace kc1fsz {
 
-class Log;
 class Clock;
 
 /**
@@ -30,15 +29,24 @@ class Clock;
 class StateMachine {
 public:
 
+    StateMachine();
+
     /**
      * @param initialState The initial state and the state that is returned 
      * on on any call to reset().
      */
-    StateMachine(Log& log, Clock& clock, int initialState);
+    StateMachine(Clock* clock, int initialState);
+
+    /**
+     * @param initialState The initial state and the state that is returned 
+     * on on any call to reset().
+     */
+    void init(Clock* clock, int initialState);
 
     void reset();
     bool inState(int state) const;
     bool operator==(int state) const;
+    bool operator!=(int state) const;
     void setState(int state);
     StateMachine& operator=(int state) { setState(state); return *this; }
     void setState(int state, unsigned timeoutMs, int timeoutState);
@@ -47,9 +55,9 @@ public:
 
 private:
 
-    Log& _log;
-    Clock& _clock;
-    const int _initialState;
+    Clock* _clock;
+    int _initialState;
+
     int _state;
     int _timeoutState;
     unsigned _timeoutMs;
