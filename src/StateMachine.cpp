@@ -21,11 +21,16 @@
 namespace kc1fsz {
 
 StateMachine::StateMachine()
-:   _clock(0), _initialState(0), _timeoutMs(0) {
+:   StateMachine(0, 0) {
 }
 
 StateMachine::StateMachine(Clock* clock, int initialState)
-:   _clock(clock), _initialState(initialState), _timeoutMs(0) {
+:   _clock(clock), 
+    _initialState(initialState), 
+    _state(initialState),
+    _timeoutState(0), 
+    _timeoutMs(0),
+    _stateStartMs(0) {
 }
 
 void StateMachine::init(Clock* clock, int initialState) {
