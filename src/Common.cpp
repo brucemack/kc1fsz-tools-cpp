@@ -350,12 +350,20 @@ uint32_t sizeToBitMask(uint32_t s) {
     return mask;
 }
 
+bool LT_MOD32(uint32_t lhs, uint32_t rhs) {
+    return (lhs != rhs) && (rhs - lhs) < 0x7fffffff;
+}
+
+bool GT_MOD32(uint32_t lhs, uint32_t rhs) {
+    return (rhs - lhs) >= 0x7fffffff;
+}
+
 bool LE_MOD32(uint32_t lhs, uint32_t rhs) {
     return (rhs - lhs) < 0x7fffffff;
 }
 
-bool LT_MOD32(uint32_t lhs, uint32_t rhs) {
-    return (lhs != rhs) && (rhs - lhs) < 0x7fffffff;
+bool GE_MOD32(uint32_t lhs, uint32_t rhs) {
+    return (rhs == lhs) || (rhs - lhs) >= 0x7fffffff;
 }
 
 uint32_t SUB_MOD32(uint32_t lhs, uint32_t rhs) {

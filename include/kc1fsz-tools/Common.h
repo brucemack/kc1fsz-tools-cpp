@@ -163,14 +163,24 @@ void binToAsciiHex(const uint8_t* bin, unsigned binLen, char* hex, unsigned hexL
 uint32_t sizeToBitMask(uint32_t size);
 
 /**
+ * Evaluates lhs < rhs modulo 2^32
+ */
+bool LT_MOD32(uint32_t lhs, uint32_t rhs);
+
+/**
+ * Evaluates lhs > rhs modulo 2^32
+ */
+bool GT_MOD32(uint32_t lhs, uint32_t rhs);
+
+/**
  * Evaluates lhs <= rhs modulo 2^32
  */
 bool LE_MOD32(uint32_t lhs, uint32_t rhs);
 
 /**
- * Evaluates lhs < rhs modulo 2^32
+ * Evaluates lhs >= rhs modulo 2^32
  */
-bool LT_MOD32(uint32_t lhs, uint32_t rhs);
+bool GE_MOD32(uint32_t lhs, uint32_t rhs);
 
 /**
  * Evaluates lhs - rhs modulo 2^32
