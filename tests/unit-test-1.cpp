@@ -226,5 +226,11 @@ TEST(UnitTest1, TestMod) {
     assert(SUB_MOD32(1, 0xffffffff) == 2);
     assert(SUB_MOD32(0x80000000, 0x7fffffff) == 1);
     assert(SUB_MOD32(0x7fffffff, 0x80000000) == 0xffffffff);
+
+    // Show the normal behavior of subtraction. As long as LHS > RHS, we always
+    // getting the right answer through the wrap
+    ASSERT_EQ(32 - 0, 32);
+    ASSERT_EQ(16 - 0xfffffff0, 32);
+    ASSERT_EQ(0 - 0xfffffff0, 16);
 }
 
