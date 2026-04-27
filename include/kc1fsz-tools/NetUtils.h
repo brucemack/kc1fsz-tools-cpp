@@ -16,6 +16,7 @@
  */
 #pragma once
 
+/*
 #ifdef __MINGW32__
 #include <sys/socket.h>
 #elifdef _WIN32
@@ -23,6 +24,10 @@
 #else
 #include <sys/socket.h>
 #endif
+*/
+
+struct sockaddr;
+struct sockaddr_storage;
 
 namespace kc1fsz {
 

@@ -190,3 +190,27 @@ TEST(UnitTest1, BasicAssertions) {
   // Expect equality.
   EXPECT_EQ(7 * 6, 42);
 }
+
+TEST(UnitTest1, TestMod) {
+    assert(!IPDriver::LE_MOD32(10, 5));
+    assert(IPDriver::LE_MOD32(10, 10));
+    assert(!IPDriver::LT_MOD32(10, 10));
+    assert(IPDriver::LE_MOD32(5, 10));
+    // Here is the wrap-around case
+    assert(IPDriver::LE_MOD32(0xffffffff, 10));
+    // Here is the wrap-around case
+    assert(!IPDriver::LE_MOD32(10, 0xfffffff0));
+    assert(IPDriver::LE_MOD32(0x7fffffff, 0x80000000));
+    assert(IPDriver::LT_MOD32(5, 10));
+
+    // Subtraction: LHS - RHS
+
+    assert(IPDriver::SUB_MOD32(10, 10) == 0);
+    assert(IPDriver::SUB_MOD32(10, 5) == 5);
+    // Wrap-around case
+    assert(IPDriver::SUB_MOD32(10, 11) == 0xffffffff);
+    assert(IPDriver::SUB_MOD32(1, 0xffffffff) == 2);
+    assert(IPDriver::SUB_MOD32(0x80000000, 0x7fffffff) == 1);
+    assert(IPDriver::SUB_MOD32(0x7fffffff, 0x80000000) == 0xffffffff);
+}
+

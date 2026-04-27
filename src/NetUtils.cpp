@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#if defined(_WIN32) && !defined(__MINGW32__) 
+#if defined(_WIN32) 
 #include <ws2tcpip.h>
 #else
 #include <netinet/in.h>
@@ -288,7 +288,7 @@ int getIPPort(const sockaddr& addr) {
 }
 
 int makeNonBlocking(int sockFd) {
-#if defined(_WIN32) && !defined(__MINGW32__)
+#if defined(_WIN32)
     unsigned long mode = 1; 
     int result = ioctlsocket(sockFd, FIONBIO, &mode);
     if (result != NO_ERROR) {
