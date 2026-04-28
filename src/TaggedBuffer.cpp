@@ -18,31 +18,31 @@
 #include <cassert>
 
 #include "kc1fsz-tools/Common.h"
-#include "kc1fsz-tools/PacketBuffer.h"
+#include "kc1fsz-tools/TaggedBuffer.h"
 
 #define HL ((unsigned)sizeof(Header))
 
 namespace kc1fsz {
 
-void PacketBuffer::clear() {
+void TaggedBuffer::clear() {
     _spaceUsed = 0;
 }
 
-bool PacketBuffer::push(uint32_t stamp, const uint8_t* packet, unsigned len) {
-    return push(stamp, packet, len, 0, 0, 0, 0);
+bool TaggedBuffer::push(uint32_t stamp, unsigned id, const uint8_t* packet, unsigned len) {
+    return push(stamp, id, packet, len, 0, 0, 0, 0);
 }
 
-bool PacketBuffer::push(uint32_t stamp, const uint8_t* packet0, unsigned len0, 
+bool TaggedBuffer::push(uint32_t stamp, unsigned id, const uint8_t* packet0, unsigned len0, 
     const uint8_t* packet1, unsigned len1) {
-    return push(stamp, packet0, len0, packet1, len1, 0, 0);
+    return push(stamp, id, packet0, len0, packet1, len1, 0, 0);
 }
 
-bool PacketBuffer::push(uint32_t stamp, const uint8_t* packet0, unsigned len0, 
+bool TaggedBuffer::push(uint32_t stamp, unsigned id, const uint8_t* packet0, unsigned len0, 
     const uint8_t* packet1, unsigned len1, const uint8_t* packet2, unsigned len2) {
     // Make sure the new packet can fit
     if (_spaceUsed + HL + len0 + len1 + len2 > _spaceCapacity)
         return false;
-    Header hdr = { .len = HL + len0 + len1 + len2, .stamp = stamp };
+    Header hdr = { .len = HL + len0 + len1 + len2, .stamp = stamp, .id = id };
     memcpy(_space + _spaceUsed, &hdr, HL);
     _spaceUsed += HL;
     if (len0) {
@@ -60,19 +60,20 @@ bool PacketBuffer::push(uint32_t stamp, const uint8_t* packet0, unsigned len0,
     return true;
 }
 
-bool PacketBuffer::tryPop(uint32_t* stamp, uint8_t* packet, unsigned* packetLen) {
-    return _tryPeekPop(stamp, packet, packetLen, true);
+bool TaggedBuffer::tryPop(uint32_t* stamp, unsigned* id, uint8_t* packet, unsigned* packetLen) {
+    return _tryPeekPop(stamp, id, packet, packetLen, true);
 }
 
-bool PacketBuffer::tryPeek(uint32_t* stamp, uint8_t* packet, unsigned* packetLen) {
-    return _tryPeekPop(stamp, packet, packetLen, false);
+bool TaggedBuffer::tryPeek(uint32_t* stamp, unsigned* id, uint8_t* packet, unsigned* packetLen) {
+    return _tryPeekPop(stamp, id, packet, packetLen, false);
 }
 
-bool PacketBuffer::_tryPeekPop(uint32_t* stamp, uint8_t* packet, unsigned* packetLen, bool pop) {
+bool TaggedBuffer::_tryPeekPop(uint32_t* stamp, unsigned* id, uint8_t* packet, unsigned* packetLen, bool pop) {
     if (_spaceUsed == 0)
         return false;
     const unsigned len = ((Header*)_space)->len;
     const uint32_t packetStamp = ((Header*)_space)->stamp;
+    const unsigned packetId = ((Header*)_space)->id;
     // Buffer is truncated if it is too long to it in the space
     unsigned copyLen = std::min(len - HL, *packetLen);
     // Give the packet to the caller
@@ -80,6 +81,8 @@ bool PacketBuffer::_tryPeekPop(uint32_t* stamp, uint8_t* packet, unsigned* packe
     *packetLen = copyLen;
     if (stamp)
         *stamp = packetStamp;
+    if (id)
+        *id = packetId;
     if (pop) {
         // Shift left (overlapping)
         if (_spaceUsed > len)
@@ -89,7 +92,7 @@ bool PacketBuffer::_tryPeekPop(uint32_t* stamp, uint8_t* packet, unsigned* packe
     return true;
 }
 
-void PacketBuffer::pop() {
+void TaggedBuffer::pop() {
     if (_spaceUsed == 0)
         return;
     const unsigned len = ((Header*)_space)->len;
@@ -99,28 +102,29 @@ void PacketBuffer::pop() {
     _spaceUsed -= len;
 }
 
-void PacketBuffer::visitAll(std::function<void(uint32_t stamp, const uint8_t* packet, unsigned len)> cb) {
+void TaggedBuffer::visitAll(visitCb cb) const {
     unsigned i = 0;
     while (i < _spaceUsed) {
         const unsigned len = ((Header*)(_space + i))->len;
         const uint32_t packetStamp = ((Header*)(_space + i))->stamp;
-        cb(packetStamp, _space + i + HL, len - HL);
+        const uint32_t packetId = ((Header*)(_space + i))->id;
+        cb(packetStamp, packetId, _space + i + HL, len - HL);
         i += len;
     }
 }
 
-void PacketBuffer::removeFirstIf(std::function<bool(uint32_t stamp, const uint8_t* packet, unsigned len)> cb) {
+void TaggedBuffer::removeFirstIf(predCb cb) {
     removeIf(cb, true);
 }
 
-void PacketBuffer::removeIf(std::function<bool(uint32_t stamp, const uint8_t* packet, unsigned len)> cb,
-    bool firstOnly) {    
+void TaggedBuffer::removeIf(predCb cb, bool firstOnly) {    
     unsigned i = 0;
     while (i < _spaceUsed) {
         const unsigned len = ((Header*)(_space + i))->len;
         const uint32_t packetStamp = ((Header*)(_space + i))->stamp;
+        const unsigned packetId = ((Header*)(_space + i))->id;
         // Call the predicate to decide if we need to remove
-        if (cb(packetStamp, _space + i + HL, len - HL)) {
+        if (cb(packetStamp, packetId, _space + i + HL, len - HL)) {
             // Shift left (overlapping)
             if (_spaceUsed > i + len)
                 memmove(_space + i, _space + i + len, _spaceUsed - i - len);

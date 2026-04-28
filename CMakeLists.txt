@@ -55,6 +55,7 @@ add_executable(unit-test-1
   tests/unit-test-1.cpp
   src/Common.cpp
   src/GPSUtils.cpp
+  src/TaggedBuffer.cpp
 ) 
 
 target_include_directories(unit-test-1 PRIVATE src)

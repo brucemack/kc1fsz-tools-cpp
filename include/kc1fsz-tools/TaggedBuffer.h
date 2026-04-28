@@ -23,17 +23,23 @@
 
 namespace kc1fsz {
 
-class PacketBuffer {
+class TaggedBuffer {
 public:
+
+    using visitCb = std::function<void(uint32_t stamp, unsigned id, const uint8_t* packet, unsigned len)>;
+    using predCb = std::function<bool(uint32_t stamp, unsigned id, const uint8_t* packet, unsigned len)>;
 
     /**
      * IMPORTANT: Length is assumed to be 16-bits big-endian!
      */
-    PacketBuffer(uint8_t* space, unsigned spaceCapacity)
-    :   _space(space), _spaceCapacity(spaceCapacity) {        
+    TaggedBuffer(uint8_t* space, unsigned spaceCapacity)
+    :   _space(space), 
+        _spaceCapacity(spaceCapacity) {        
     }
 
     void clear();
+
+    bool isEmpty() const { return _spaceUsed == 0; }
 
     /**
      * @returns Bytes actually used
@@ -41,9 +47,11 @@ public:
     unsigned getUsed() const { return _spaceUsed; }
 
     /**
+     * @param stamp The timestamp of the item
+     * @param id An arbitrary ID used for tracking the item
      * @returns true if successful, false if no (i.e. no space)
      */
-    bool push(uint32_t stamp, const uint8_t* packet, unsigned len);
+    bool push(uint32_t stamp, unsigned id, const uint8_t* packet, unsigned len);
 
     /**
      * Has exactly the same semantics of push, but takes the packet in two
@@ -52,7 +60,7 @@ public:
      *
      * @returns true if successful, false if no (i.e. no space)
      */
-    bool push(uint32_t stamp, const uint8_t* packet0, unsigned len0, 
+    bool push(uint32_t stamp, unsigned id, const uint8_t* packet0, unsigned len0, 
         const uint8_t* packet1, unsigned len1);
 
     /**
@@ -62,7 +70,7 @@ public:
      *
      * @returns true if successful, false if no (i.e. no space)
      */
-    bool push(uint32_t stamp, const uint8_t* packet0, unsigned len0, 
+    bool push(uint32_t stamp, unsigned id, const uint8_t* packet0, unsigned len0, 
         const uint8_t* packet1, unsigned len1,
         const uint8_t* packet2, unsigned len2);
 
@@ -73,7 +81,7 @@ public:
      * overwritten with the size of the packet popped.
      * @returns false if the buffer was empty.
      */
-    bool tryPop(uint32_t* stamp, uint8_t* packet, unsigned* len);
+    bool tryPop(uint32_t* stamp, unsigned* id, uint8_t* packet, unsigned* len);
 
     /**
      * Provides a peek at the first element without removing it.
@@ -83,35 +91,35 @@ public:
      * overwritten with the size of the packet peeked.
      * @returns false if the buffer was empty
      */
-    bool tryPeek(uint32_t* stamp, uint8_t* packet, unsigned* len);
+    bool tryPeek(uint32_t* stamp, unsigned* id, uint8_t* packet, unsigned* len);
 
     /**
-     * Takes off the first item, if any.
+     * Takes off and discards the first item, if any.
      */
     void pop();
 
-    void visitAll(std::function<void(uint32_t stamp, const uint8_t* packet, unsigned len)> visitor);
+    void visitAll(visitCb visitor) const;
 
-    void removeFirstIf(std::function<bool(uint32_t stamp, const uint8_t* packet, unsigned len)> pred);
+    void removeFirstIf(predCb pred);
 
     /**
      * @param firstOnly If this is true then the process stops after the first match.
      */
-    void removeIf(std::function<bool(uint32_t stamp, const uint8_t* packet, unsigned len)> pred,
-        bool firstOnly = false);
+    void removeIf(predCb pred, bool firstOnly = false);
 
 private:
 
     struct Header {
         unsigned len;
         uint32_t stamp;
+        unsigned id;
     };
 
     uint8_t* _space;
     unsigned _spaceCapacity;
     unsigned _spaceUsed = 0;
 
-    bool _tryPeekPop(uint32_t* stamp, uint8_t* packet, unsigned* packetLen, bool pop);
+    bool _tryPeekPop(uint32_t* stamp, unsigned* id, uint8_t* packet, unsigned* packetLen, bool pop);
 };
 
 }

@@ -8,6 +8,7 @@
 #include "kc1fsz-tools/CircularQueuePointers.h"
 #include "kc1fsz-tools/CircularQueueWithTrigger.h"
 #include "kc1fsz-tools/GPSUtils.h"
+#include "kc1fsz-tools/TaggedBuffer.h"
 
 using namespace std;
 using namespace kc1fsz;
@@ -234,3 +235,26 @@ TEST(UnitTest1, TestMod) {
     ASSERT_EQ(0 - 0xfffffff0, 16);
 }
 
+TEST(UnitTest1, TaggedBufferTest) {
+    uint8_t space[64];
+    TaggedBuffer buf(space, sizeof(space));
+    buf.push(1, 2, (const uint8_t*)"xxx", 3);
+    EXPECT_FALSE(buf.isEmpty());
+    buf.pop();
+    EXPECT_TRUE(buf.isEmpty());
+
+    buf.push(1, 2, (const uint8_t*)"xxx", 3);
+    buf.push(3, 4, (const uint8_t*)"yyy", 3);
+    buf.removeIf([](uint32_t, unsigned id, const uint8_t*, unsigned) {
+        return id == 2;
+    });  
+    EXPECT_FALSE(buf.isEmpty());
+    buf.removeIf([](uint32_t, unsigned id, const uint8_t*, unsigned) {
+        return id == 2;
+    });  
+    EXPECT_FALSE(buf.isEmpty());
+    buf.removeIf([](uint32_t stamp, unsigned id, const uint8_t*, unsigned) {
+        return stamp == 3;
+    });  
+    EXPECT_TRUE(buf.isEmpty());
+}
