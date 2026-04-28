@@ -215,8 +215,8 @@ TEST(UnitTest1, TestMod) {
     ASSERT_FALSE(GT_MOD32(0xfffffff0, 10));
     ASSERT_FALSE(GE_MOD32(0xfffffff0, 10));
     // Around the middle
-    assert(GT_MOD32(0x80000000, 0x7fffffff));
-    assert(GE_MOD32(0x80000000, 0x7fffffff));
+    ASSERT_TRUE(GT_MOD32(0x80000000, 0x7fffffff));
+    ASSERT_TRUE(GE_MOD32(0x80000000, 0x7fffffff));
 
     // Subtraction: LHS - RHS
 
@@ -233,6 +233,30 @@ TEST(UnitTest1, TestMod) {
     ASSERT_EQ(32 - 0, 32);
     ASSERT_EQ(16 - 0xfffffff0, 32);
     ASSERT_EQ(0 - 0xfffffff0, 16);
+
+    assert(!LE_MOD8(10, 5));
+    assert(LE_MOD8(10, 10));
+    assert(!LT_MOD8(10, 10));
+    assert(LE_MOD8(5, 10));
+    // Here is the wrap-around case
+    assert(LE_MOD8(0xff, 10));
+    // Here is the wrap-around case
+    assert(!LE_MOD8(10, 0xf0));
+    assert(LE_MOD8(0x7f, 0x80));
+    assert(LT_MOD8(5, 10));
+
+    ASSERT_FALSE(GE_MOD8(5, 10));
+    ASSERT_TRUE(GE_MOD8(10, 10));
+    ASSERT_FALSE(GT_MOD8(10, 10));
+    ASSERT_TRUE(GE_MOD8(10, 5));
+    // Here is the wrap-around case
+    ASSERT_TRUE(GT_MOD8(10, 0xf0));
+    ASSERT_TRUE(GE_MOD8(10, 0xf0));
+    ASSERT_FALSE(GT_MOD8(0xf0, 10));
+    ASSERT_FALSE(GE_MOD8(0xf0, 10));
+    // Around the middle
+    ASSERT_TRUE(GT_MOD8(0x80, 0x7f));
+    ASSERT_TRUE(GE_MOD8(0x80, 0x7f));
 }
 
 TEST(UnitTest1, TaggedBufferTest) {

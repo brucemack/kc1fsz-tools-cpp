@@ -370,5 +370,29 @@ uint32_t SUB_MOD32(uint32_t lhs, uint32_t rhs) {
     return lhs - rhs;
 }
 
+bool LT_MOD8(uint8_t lhs, uint8_t rhs) {
+    uint8_t d = (rhs - lhs);
+    return (lhs != rhs) && d < (uint8_t)0x7f;
+}
+
+bool GT_MOD8(uint8_t lhs, uint8_t rhs) {
+    uint8_t d = (rhs - lhs);
+    return d >= (uint8_t)0x7f;
+}
+
+bool LE_MOD8(uint8_t lhs, uint8_t rhs) {
+    uint8_t d = (rhs - lhs);
+    return d < (uint8_t)0x7f;
+}
+
+bool GE_MOD8(uint8_t lhs, uint8_t rhs) {
+    uint8_t d = (rhs - lhs);
+    return (rhs == lhs) || d >= (uint8_t)0x7f;
+}
+
+uint8_t SUB_MOD8(uint8_t lhs, uint8_t rhs) {
+    return lhs - rhs;
+}
+
 }
 

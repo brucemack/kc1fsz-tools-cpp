@@ -187,4 +187,29 @@ bool GE_MOD32(uint32_t lhs, uint32_t rhs);
  */
 uint32_t SUB_MOD32(uint32_t lhs, uint32_t rhs);
 
+/**
+ * Evaluates lhs < rhs modulo 2^8
+ */
+bool LT_MOD8(uint8_t lhs, uint8_t rhs);
+
+/**
+ * Evaluates lhs > rhs modulo 2^8
+ */
+bool GT_MOD8(uint8_t lhs, uint8_t rhs);
+
+/**
+ * Evaluates lhs <= rhs modulo 2^8
+ */
+bool LE_MOD8(uint8_t lhs, uint8_t rhs);
+
+/**
+ * Evaluates lhs >= rhs modulo 2^8
+ */
+bool GE_MOD8(uint8_t lhs, uint8_t rhs);
+
+/**
+ * Evaluates lhs - rhs modulo 2^8
+ */
+uint8_t SUB_MOD8(uint8_t lhs, uint8_t rhs);
+
 }
