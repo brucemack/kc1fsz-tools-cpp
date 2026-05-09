@@ -14,13 +14,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include <stdio.h>
 #include <cstring> 
 #include <cassert>
 
 #include "kc1fsz-tools/Common.h"
 #include "kc1fsz-tools/TaggedBuffer.h"
 
-#define HL ((unsigned)sizeof(Header))
+#define HL ((unsigned)sizeof(TaggedBuffer::Header))
 
 namespace kc1fsz {
 
@@ -39,6 +40,10 @@ bool TaggedBuffer::push(uint32_t stamp, unsigned id, const uint8_t* packet0, uns
 
 bool TaggedBuffer::push(uint32_t stamp, unsigned id, const uint8_t* packet0, unsigned len0, 
     const uint8_t* packet1, unsigned len1, const uint8_t* packet2, unsigned len2) {
+    assert(len0 < _spaceCapacity);
+    assert(len1 < _spaceCapacity);
+    assert(len2 < _spaceCapacity);
+    assert(HL < _spaceCapacity);
     // Make sure the new packet can fit
     if (_spaceUsed + HL + len0 + len1 + len2 > _spaceCapacity)
         return false;
@@ -71,19 +76,22 @@ bool TaggedBuffer::tryPeek(uint32_t* stamp, unsigned* id, uint8_t* packet, unsig
 bool TaggedBuffer::_tryPeekPop(uint32_t* stamp, unsigned* id, uint8_t* packet, unsigned* packetLen, bool pop) {
     if (_spaceUsed == 0)
         return false;
-    const unsigned len = ((Header*)_space)->len;
-    const uint32_t packetStamp = ((Header*)_space)->stamp;
-    const unsigned packetId = ((Header*)_space)->id;
+    // Move the header into a properly aligned area 
+    Header header;
+    memcpy(&header, _space, HL);
+    const unsigned len = header.len;
+    assert(len < _spaceCapacity);
     // Buffer is truncated if it is too long to it in the space
     unsigned copyLen = std::min(len - HL, *packetLen);
-    // Give the packet to the caller
+    // Give the packet contents to the caller
     memcpy(packet, _space + HL, copyLen);
     *packetLen = copyLen;
     if (stamp)
-        *stamp = packetStamp;
+        *stamp = header.stamp;
     if (id)
-        *id = packetId;
+        *id = header.id;
     if (pop) {
+        assert(_spaceUsed >= len);
         // Shift left (overlapping)
         if (_spaceUsed > len)
             memmove(_space, _space + len, _spaceUsed - len);
@@ -95,8 +103,12 @@ bool TaggedBuffer::_tryPeekPop(uint32_t* stamp, unsigned* id, uint8_t* packet, u
 void TaggedBuffer::pop() {
     if (_spaceUsed == 0)
         return;
-    const unsigned len = ((Header*)_space)->len;
+    // Move the header into a properly aligned area 
+    Header header;
+    memcpy(&header, _space, HL);
+    const unsigned len = header.len;
     // Shift left (overlapping)
+    assert(_spaceUsed >= len);
     if (_spaceUsed > len)
         memmove(_space, _space + len, _spaceUsed - len);
     _spaceUsed -= len;
@@ -105,11 +117,14 @@ void TaggedBuffer::pop() {
 void TaggedBuffer::visitAll(visitCb cb) const {
     unsigned i = 0;
     while (i < _spaceUsed) {
-        const unsigned len = ((Header*)(_space + i))->len;
-        const uint32_t packetStamp = ((Header*)(_space + i))->stamp;
-        const uint32_t packetId = ((Header*)(_space + i))->id;
-        cb(packetStamp, packetId, _space + i + HL, len - HL);
-        i += len;
+        // Move the header into a properly aligned area 
+        Header header;
+        memcpy(&header, _space + i, HL);
+        // Sanity check
+        assert(i + header.len <= _spaceUsed);
+        // Fire the callback to enable visitation
+        cb(header.stamp, header.id, _space + i + HL, header.len - HL);
+        i += header.len;
     }
 }
 
@@ -120,11 +135,16 @@ void TaggedBuffer::removeFirstIf(predCb cb) {
 void TaggedBuffer::removeIf(predCb cb, bool firstOnly) {    
     unsigned i = 0;
     while (i < _spaceUsed) {
-        const unsigned len = ((Header*)(_space + i))->len;
-        const uint32_t packetStamp = ((Header*)(_space + i))->stamp;
-        const unsigned packetId = ((Header*)(_space + i))->id;
+        // Move the header into a properly aligned area 
+        Header header;
+        memcpy(&header, _space + i, HL);
+        const unsigned len = header.len;
+        // Sanity check
+        assert(_spaceUsed < _spaceCapacity);
+        assert(i + len <= _spaceCapacity);
+        assert(i + len <= _spaceUsed);
         // Call the predicate to decide if we need to remove
-        if (cb(packetStamp, packetId, _space + i + HL, len - HL)) {
+        if (cb(header.stamp, header.id, _space + i + HL, len - HL)) {
             // Shift left (overlapping)
             if (_spaceUsed > i + len)
                 memmove(_space + i, _space + i + len, _spaceUsed - i - len);

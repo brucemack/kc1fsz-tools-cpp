@@ -127,7 +127,8 @@ void prettyHexDump(const uint8_t* data, uint32_t len, std::ostream& out,
         if (color) {   
             out << "\u001b[0m";
         }
-        out << std::endl;
+        out << "\r\n";
+        out.flush();
     }
 }
 
