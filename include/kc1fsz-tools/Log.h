@@ -85,7 +85,7 @@ public:
         _out("E", timeBuf, buf);
     }
 
-    virtual void debugDump(const char* msg, const uint8_t* data, uint32_t dataLen) {
+    virtual void debugDump(const char* msg, const void* data, uint32_t dataLen) {
         if (!_enabled)
             return;
 
@@ -93,11 +93,11 @@ public:
         _fmtTime(timeBuf, sizeof(timeBuf));
 
         _out("D", timeBuf, msg);
-        prettyHexDump(data, dataLen, std::cout);
+        prettyHexDump((const uint8_t*)data, dataLen, std::cout);
     }
 
     virtual void infoDump(const char* msg, 
-        const uint8_t* data, uint32_t dataLen) {
+        const void* data, uint32_t dataLen) {
         if (!_enabled)
             return;
 
@@ -105,7 +105,7 @@ public:
         _fmtTime(timeBuf, sizeof(timeBuf));
 
         _out("I", timeBuf, msg);
-        prettyHexDump(data, dataLen, std::cout);
+        prettyHexDump((const uint8_t*)data, dataLen, std::cout);
     }
 
     virtual void println(const char* msg) {
