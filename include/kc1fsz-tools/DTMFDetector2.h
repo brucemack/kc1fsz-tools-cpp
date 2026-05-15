@@ -17,8 +17,7 @@
  *
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
-#ifndef _DTMFDetector2_h
-#define _DTMFDetector2_h
+#pragma once 
 
 #include <cstdint>
 
@@ -55,16 +54,30 @@ public:
      */
     bool isDetectionPending() const { return _isDSC; }
 
+    struct VscDetection {
+
+        char symbol;
+        int32_t combPower;
+        int32_t signalThresholdPower;
+
+        void updateAverages(const VscDetection& other);
+    };
+
+    struct Detection {
+        VscDetection vsc;
+        unsigned validCount;
+    };
+
     /**
      * @return Pops the queue with the oldest detected symbol, or returns
      * zero if there has not been a detection.
      */
-    char popDetection() { 
+    Detection popDetection() { 
         if (_isDSC) {
             _isDSC = false; 
             return _detectedSymbol; 
         } else {
-            return 0;
+            return { 0 };
         }
     }
 
@@ -83,9 +96,9 @@ private:
 
     /*
     * @brief Indicates which valid symbol (if any) is in the block.
-    * @return 0 for noise/silence, otherwise the character that is valid.
+    * @return A zero symbol for noise/silence, otherwise the symbol that is valid.
     */
-    char _detectVSC(int16_t* samples, uint32_t N);
+    VscDetection _detectVSC(int16_t* samples, uint32_t N);
 
     static constexpr int16_t freqRow[4] = { 697, 770, 852, 941 };
     // This is 2 * cos(2 * PI * fk / fs) for each of the 8 frequencies
@@ -120,19 +133,18 @@ private:
     unsigned _invalidCount = 0;
     // If we are in a valid symbol, how long has valid symbol lasted?
     unsigned _validCount = 0;
+    // The last time a VSC was seen
+    uint32_t _lastVscTime = 0;
     // What is the valid symbol that we are attempting to detect?
-    char _potentialSymbol = 0;
+    VscDetection _potentialSymbol = { 0 };
     // Used to track the period with a valid, but incompatible symbol
     unsigned _dropCount = 0;
     // Was a symbol detected?
     bool _isDSC = false;
-    // What was the detected symbol that we saw?
-    char _detectedSymbol = 0;
+    // What was the last detected symbol that we saw?
+    Detection _detectedSymbol = { 0 };
 
-    uint32_t _lastVscTime = 0;
     float _diagValue;
 };
 
 }
-
-#endif
