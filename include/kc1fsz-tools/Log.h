@@ -85,6 +85,21 @@ public:
         _out("E", timeBuf, buf);
     }
 
+    virtual void important(const char* format, ...) {
+        if (!_enabled)
+            return;
+        va_list argptr;
+        va_start(argptr, format);
+        char buf[128];
+        vsnprintf(buf, 128, format, argptr);
+        va_end(argptr);
+
+        char timeBuf[64];
+        _fmtTime(timeBuf, 64);
+
+        _out("!", timeBuf, buf);
+    }
+
     virtual void debugDump(const char* msg, const void* data, uint32_t dataLen) {
         if (!_enabled)
             return;
@@ -156,11 +171,12 @@ protected:
             std::cout << sev << ": " << dt << " " << msg << std::endl;
     }
 
-private:
-
     Clock* _clock = 0;
     // An optional callback that is used to produce the output.
     void (*_outCb)(const char* sev, const char* dt, const char* msg) = 0;
+
+private: 
+
     bool _enabled = true;
 };
 }

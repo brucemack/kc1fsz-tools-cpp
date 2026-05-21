@@ -35,6 +35,9 @@ namespace kc1fsz {
 class MTLog2 : public Log {
 public:
 
+    MTLog2(void (*outCb)(const char* sev, const char* dt, const char* msg) = 0)
+    : Log(outCb) { }
+
     uint64_t getSlowestUs() const { return _worstUs; }
     void resetStats() { _worstUs = 0; }
 
@@ -51,8 +54,11 @@ protected:
         char tid[16];
         tid[0] = 0;
         {
-            std::lock_guard<std::mutex> guard(_mutex); 
-            std::cout << tid << " " << sev << " " << dt << " " << msg << std::endl;
+            std::lock_guard<std::mutex> guard(_mutex);
+            if (_outCb)
+                _outCb(sev, dt, msg);
+            else 
+                std::cout << tid << " " << sev << " " << dt << " " << msg << std::endl;
             _lockedOut(sev, dt, msg);
         }
         uint64_t endUs = timeUs();
