@@ -160,4 +160,12 @@ void TaggedBuffer::removeIf(predCb cb, bool firstOnly) {
     }
 }
 
+unsigned TaggedBuffer::count() const {
+    unsigned count = 0;
+    visitAll([&count](uint32_t, unsigned, const uint8_t*, unsigned) {
+        count++;
+    });
+    return count;
+}
+
 }

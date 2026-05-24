@@ -38,8 +38,10 @@ public:
     }
 
     void clear();
-
+   
     bool isEmpty() const { return _spaceUsed == 0; }
+
+    unsigned count() const;
 
     /**
      * @returns Bytes actually used
