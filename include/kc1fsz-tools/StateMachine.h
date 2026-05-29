@@ -29,6 +29,8 @@ class Clock;
 class StateMachine {
 public:
 
+    using transitionCb = std::function<void(int oldState, int newState)>;
+
     StateMachine();
 
     /**
@@ -42,6 +44,11 @@ public:
      * on on any call to reset().
      */
     void init(Clock* clock, int initialState);
+
+    /**
+     * Installs a state transition callback. This would mostly be used for debugging/monitoring.
+     */
+    void setTransitionCb(transitionCb cb) { _transitionCb = cb; }
 
     void reset();
     bool inState(int state) const;
@@ -57,6 +64,7 @@ private:
 
     Clock* _clock;
     int _initialState;
+    transitionCb _transitionCb = nullptr;
 
     int _state;
     int _timeoutState;

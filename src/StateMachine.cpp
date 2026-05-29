@@ -57,15 +57,18 @@ bool StateMachine::operator!=(int state) const {
 }
 
 void StateMachine::setState(int state) {
-    _state = state;
-    _stateStartMs = _clock->timeMs();
-    _timeoutMs = 0;
-    _timeoutState = 0;
+    if (state != _state) {
+        if (_transitionCb)
+            _transitionCb(_state, state);
+        _state = state;
+        _stateStartMs = _clock->timeMs();
+        _timeoutMs = 0;
+        _timeoutState = 0;
+    }
 }
 
 void StateMachine::setState(int state, unsigned timeoutMs, int timeoutState) {
-    _state = state;
-    _stateStartMs = _clock->timeMs();
+    setState(state);
     _timeoutMs = timeoutMs;
     _timeoutState = timeoutState;
 }
