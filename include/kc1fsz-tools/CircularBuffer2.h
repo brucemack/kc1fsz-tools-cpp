@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <functional>
 #include <cassert>
+#include <cstring>
 
 #include "kc1fsz-tools/CircularQueuePtr.h"
 
