@@ -5,10 +5,12 @@
 #include <cstring>
 
 #include "kc1fsz-tools/Log.h"
+#include "kc1fsz-tools/CircularQueuePtr.h"
 #include "kc1fsz-tools/CircularQueuePointers.h"
 #include "kc1fsz-tools/CircularQueueWithTrigger.h"
 #include "kc1fsz-tools/GPSUtils.h"
 #include "kc1fsz-tools/TaggedBuffer.h"
+#include "kc1fsz-tools/CircularBuffer2.h"
 
 using namespace std;
 using namespace kc1fsz;
@@ -282,3 +284,123 @@ TEST(UnitTest1, TaggedBufferTest) {
     });  
     EXPECT_TRUE(buf.isEmpty());
 }
+
+TEST(UnitTest1, CircularPtr1) {
+    CircularQueuePtr ptr1(4);
+    EXPECT_TRUE(ptr1.isEmpty());
+    EXPECT_TRUE(ptr1.hasCapacity());
+    ASSERT_EQ(ptr1.getOverflowCount(), 0);
+    ASSERT_EQ(ptr1.getAndIncWritePtr(), 0);
+    ASSERT_EQ(ptr1.getAndIncWritePtr(), 1);
+    ASSERT_EQ(ptr1.getAndIncWritePtr(), 2);
+    // Full now
+    EXPECT_FALSE(ptr1.hasCapacity());
+    // If we write into the 3 slot that would be an overflow
+    ASSERT_EQ(ptr1.getAndIncWritePtr(), 3);
+    ASSERT_EQ(ptr1.getOverflowCount(), 1);
+    ASSERT_EQ(ptr1.getAndIncWritePtr(), 3);
+    ASSERT_EQ(ptr1.getOverflowCount(), 2);
+    ASSERT_EQ(ptr1.getDepth(), 3);
+    // Full now
+    EXPECT_FALSE(ptr1.hasCapacity());
+}
+
+TEST(UnitTest1, CircularPtr2) {
+    CircularQueuePtr ptr1(4);
+    EXPECT_TRUE(ptr1.isEmpty());
+    ASSERT_EQ(ptr1.getOverflowCount(), 0);
+    ASSERT_EQ(ptr1.getAndIncWritePtr(), 0);
+    ASSERT_EQ(ptr1.getDepth(), 1);
+    EXPECT_TRUE(ptr1.hasCapacity());
+    ASSERT_EQ(ptr1.getAndIncReadPtr(), 0);
+    ASSERT_EQ(ptr1.getDepth(), 0);
+    // Will cause an underflow
+    ASSERT_EQ(ptr1.getAndIncReadPtr(), 1);
+    ASSERT_EQ(ptr1.getUnderflowCount(), 1);
+    EXPECT_TRUE(ptr1.hasCapacity());
+    ASSERT_EQ(ptr1.getAndIncWritePtr(), 1);
+    ASSERT_EQ(ptr1.getAndIncWritePtr(), 2);
+    // Writing into 3 is fine now because the read pointer is one ahead
+    ASSERT_EQ(ptr1.getAndIncWritePtr(), 3);
+    ASSERT_EQ(ptr1.getOverflowCount(), 0);
+    EXPECT_FALSE(ptr1.hasCapacity());
+}
+
+TEST(UnitTest1, CircularPtr3) {
+    // Unlimited write
+    CircularQueuePtr ptr1(4, false);
+    EXPECT_TRUE(ptr1.isEmpty());
+    ASSERT_EQ(ptr1.getOverflowCount(), 0);
+    ASSERT_EQ(ptr1.getAndIncWritePtr(), 0);
+    ASSERT_EQ(ptr1.getAndIncWritePtr(), 1);
+    ASSERT_EQ(ptr1.getAndIncWritePtr(), 2);
+    // This will cause the oldest entry to be discarded
+    EXPECT_TRUE(ptr1.hasCapacity());
+    ASSERT_EQ(ptr1.getAndIncWritePtr(), 3);
+    ASSERT_EQ(ptr1.getDepth(), 3);
+    // Can still write
+    EXPECT_TRUE(ptr1.hasCapacity());
+    // Read something off and show that the oldest element (0) was discarded
+    ASSERT_EQ(ptr1.getAndIncReadPtr(), 1);
+    ASSERT_EQ(ptr1.getDepth(), 2);
+    ASSERT_EQ(ptr1.getOverflowCount(), 0);
+    ASSERT_EQ(ptr1.getAndIncWritePtr(), 0);
+    ASSERT_EQ(ptr1.getOverflowCount(), 0);
+    ASSERT_EQ(ptr1.getDepth(), 3);
+}
+
+TEST(UnitTest1, CircularPtr4) {
+
+    // Unlimited write
+    CircularQueuePtr ptr1(4, false);
+    EXPECT_TRUE(ptr1.isEmpty());
+    ASSERT_EQ(ptr1.getOverflowCount(), 0);
+    ASSERT_EQ(ptr1.getAndIncWritePtr(), 0);
+    ASSERT_EQ(ptr1.getAndIncWritePtr(), 1);
+    ASSERT_EQ(ptr1.getAndIncWritePtr(), 2);
+    ASSERT_EQ(ptr1.getAndIncReadPtr(), 0);
+    ASSERT_EQ(ptr1.getAndIncWritePtr(), 3);
+
+    unsigned q = 0;
+
+    ptr1.visit([&q](uint32_t i) {
+        if (q == 0)
+            ASSERT_EQ(i, 1);
+        else if (q == 1)
+            ASSERT_EQ(i, 2);
+        else if (q == 2)
+            ASSERT_EQ(i, 3);
+        else 
+            ASSERT_TRUE(false);
+        q++;
+    });
+
+    // Now demonstrate an overwrite of entry 1
+    ASSERT_EQ(ptr1.getAndIncWritePtr(), 0);
+
+    q = 0;
+
+    ptr1.visit([&q](uint32_t i) {
+        if (q == 0)
+            ASSERT_EQ(i, 2);
+        else if (q == 1)
+            ASSERT_EQ(i, 3);
+        else if (q == 2)
+            ASSERT_EQ(i, 0);
+        else 
+            ASSERT_TRUE(false);
+        q++;
+    });
+}
+
+TEST(UnitTest1, CircularBuffer1) {
+    char space[32] = { 0 };
+    CircularBuffer2 buf(space, sizeof(space), 10);
+    assert(buf.getCapacity() == 3);
+    buf.push("012345", 7);
+    buf.push("678901", 7);
+    buf.visit([](const void* d, unsigned l) {
+        cout << (const char*)d << " - " << l << endl;
+    });
+}
+
